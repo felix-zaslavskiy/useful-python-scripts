@@ -20,7 +20,7 @@ def main():
 
     java_files = sys.argv[1:]
 
-    with open("concatenated_output.java", "w") as output_file:
+    with open("concatenated_output.txt", "w") as output_file:
         for java_file in java_files:
             with open(java_file, "r") as input_file:
                 # Print "// " before the filename
