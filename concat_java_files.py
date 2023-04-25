@@ -5,12 +5,10 @@ import re
 def process_lines(lines):
     new_lines = []
     for line in lines:
-        if not line.startswith('import '):
+        if not line.startswith('import ') and not line.startswith('package '):
             stripped_line = line.rstrip()
             if stripped_line:
-                new_lines.append(stripped_line + '\n')
-            else:
-                new_lines.append('\n')
+                new_lines.append(stripped_line.lstrip() + '\n')
     return new_lines
 
 def main():
@@ -20,6 +18,7 @@ def main():
 
     java_files = sys.argv[1:]
 
+    print("concat working")
     with open("concatenated_output.txt", "w") as output_file:
         for java_file in java_files:
             with open(java_file, "r") as input_file:
