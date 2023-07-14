@@ -3,6 +3,7 @@ import os
 from gradio_client import Client
 import json
 from bs4 import BeautifulSoup
+import csv
 
 client = Client("https://huggingfaceh4-open-llm-leaderboard.hf.space/")
 json_data = client.predict(fn_index=2)
@@ -23,16 +24,24 @@ data_dict = [dict(zip(headers, d)) for d in data]
 # Create a new dictionary with model->status
 model_status_dict = {}
 
-for d in data_dict:
-    # Parse the HTML to get the model name
-    soup = BeautifulSoup(d['Model'], 'html.parser')
-    if d['Model'] == '<p>Baseline</p>':
-        continue
+with open('llm_data.csv', 'w') as f:
+    w = csv.DictWriter(f, headers)
+    w.writeheader()
 
-    model_name = soup.a.string
+    for d in data_dict:
+        # Parse the HTML to get the model name
+        soup = BeautifulSoup(d['Model'], 'html.parser')
+        if d['Model'] == '<p>Baseline</p>':
+            continue
 
-    # Add the model name and status to the dictionary
-    model_status_dict[model_name] = d['Average \u2b06\ufe0f']
+        model_name = soup.a.string
+        d['Model'] = model_name
+
+        # Add the model name and status to the dictionary
+        model_status_dict[model_name] = d['Average \u2b06\ufe0f']
+
+        w.writerow(d)
+
 
 # Load the previous data if it exists
 if os.path.exists('state.dat'):
