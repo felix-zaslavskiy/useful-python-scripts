@@ -26,6 +26,9 @@ model_status_dict = {}
 for d in data_dict:
     # Parse the HTML to get the model name
     soup = BeautifulSoup(d['Model'], 'html.parser')
+    if d['Model'] == '<p>Baseline</p>':
+        continue
+
     model_name = soup.a.string
 
     # Add the model name and status to the dictionary
@@ -43,12 +46,19 @@ with open('state.dat', 'wb') as file:
     pickle.dump(model_status_dict, file)
 
 # Compare the previous data with the current data
+had_change=False
 for key in model_status_dict:
     if key not in previous_data:
         print(f'New model: {key}')
+        had_change=True
     elif model_status_dict[key] != previous_data[key]:
         print(f'Model {key} changed from {previous_data[key]} to {model_status_dict[key]}')
+        had_change=True
 
 for key in previous_data:
     if key not in model_status_dict:
         print(f'Model {key} was removed')
+        had_change=True
+
+if not had_change:
+    print("No changes")
