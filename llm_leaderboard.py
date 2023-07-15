@@ -4,6 +4,7 @@ from gradio_client import Client
 import json
 from bs4 import BeautifulSoup
 import csv
+import re
 
 client = Client("https://huggingfaceh4-open-llm-leaderboard.hf.space/")
 json_data = client.predict(fn_index=2)
@@ -18,27 +19,40 @@ data = json.loads(file_data)
 headers = data['headers']
 data = data['data']
 
-# Create a dictionary from the headers and the data
-data_dict = [dict(zip(headers, d)) for d in data]
+
 
 # Create a new dictionary with model->status
 model_status_dict = {}
 
 with open('llm_data.csv', 'w') as f:
-    w = csv.DictWriter(f, headers)
+    headers_clean = []
+
+    for value in headers:
+        text = value.replace('\u2b06\ufe0f', '')
+        text = text.replace('\u2764\uFE0F', '').rstrip()
+        headers_clean.append(text)
+
+    # Create a dictionary from the headers and the data
+    data_dict = [dict(zip(headers_clean, d)) for d in data]
+
+    headers_clean.pop()
+    headers_clean.pop()
+    w = csv.DictWriter(f, headers_clean)
     w.writeheader()
 
     for d in data_dict:
         # Parse the HTML to get the model name
-        soup = BeautifulSoup(d['Model'], 'html.parser')
+        #soup = BeautifulSoup(d['Model'], 'html.parser')
         if d['Model'] == '<p>Baseline</p>':
             continue
 
-        model_name = soup.a.string
+        model_name = d['model_name_for_query']
         d['Model'] = model_name
+        del d['model_name_for_query']
+        del d['Model sha']
 
         # Add the model name and status to the dictionary
-        model_status_dict[model_name] = d['Average \u2b06\ufe0f']
+        model_status_dict[model_name] = d['Average']
 
         w.writerow(d)
 
