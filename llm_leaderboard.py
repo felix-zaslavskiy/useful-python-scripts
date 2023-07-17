@@ -2,7 +2,6 @@ import pickle
 import os
 from gradio_client import Client
 import json
-from bs4 import BeautifulSoup
 import csv
 
 
