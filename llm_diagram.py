@@ -1,0 +1,40 @@
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+# Retry loading the new data
+df = pd.read_csv('llm_data.csv')
+
+# Find the best model within each size_type
+best_models = df.loc[df.groupby("size_type")["Average"].idxmax()]
+
+# Define the order for the size_type
+order = ['65B', '40B', '30B', '20B', '16B', '13B', '7B', '6B', '3B', '1B', 'other']
+
+# Convert the size_type to a category type with the defined order
+best_models['size_type'] = pd.Categorical(best_models['size_type'], categories=order, ordered=True)
+
+# Sort the DataFrame according to the new order
+best_models = best_models.sort_values('size_type')
+
+# Create the plot with the updated order
+plt.figure(figsize=(10, 8))
+sns.barplot(x="size_type", y="Average", data=best_models, palette="Blues_d")
+plt.xlabel('Model Size Type')
+plt.ylabel('Best Average Rating')
+plt.title('Best Model within Each Size Type Based on Average Rating')
+
+# Annotate the model names on the bars in vertical orientation
+for i in range(best_models.shape[0]):
+    plt.text(i,
+             best_models.Average.iloc[i]/2,  # Position at half height for better visibility
+             best_models.Model.iloc[i],
+             ha = 'center',
+             va = 'center',
+             rotation='vertical',
+             fontsize=12,  # Increase font size
+             fontweight='bold',  # Make font bolder
+             color='white')  # Change font color for better visibility
+
+plt.tight_layout()
+plt.show()

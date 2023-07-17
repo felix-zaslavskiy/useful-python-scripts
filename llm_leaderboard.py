@@ -4,7 +4,7 @@ from gradio_client import Client
 import json
 from bs4 import BeautifulSoup
 import csv
-import re
+
 
 client = Client("https://huggingfaceh4-open-llm-leaderboard.hf.space/")
 json_data = client.predict(fn_index=2)
@@ -19,12 +19,44 @@ data = json.loads(file_data)
 headers = data['headers']
 data = data['data']
 
-
+def categorize_size(params, name):
+    if params == 0.0:
+        if name == 'huggingface/llama-65b':
+            return "65B"
+        elif name == 'huggingface/llama-30b':
+            return "30B"
+        elif name == 'huggingface/llama-13b':
+            return "13B"
+        elif name == 'huggingface/llama-7b':
+            return "7B"
+        return "other"
+    elif params <= 1.0:
+        return "1B"
+    elif params <= 3.0:
+        return "3B"
+    elif params <= 6.0:
+        return "6B"
+    elif params <= 7.5:
+        return "7B"
+    elif params <= 13.5:
+        return "13B"
+    elif params <= 16.5:
+        return "16B"
+    elif params <= 20.5:
+        return "20B"
+    elif params <= 35.0:
+        return "30B"
+    elif params <= 45.0:
+        return "40B"
+    elif params <= 66.0:
+        return "65B"
+    else:
+        return "65B+"
 
 # Create a new dictionary with model->status
 model_status_dict = {}
 
-with open('llm_data.csv', 'w') as f:
+with open('llm_data.csv', 'w', newline='') as f:
     headers_clean = []
 
     for value in headers:
@@ -37,6 +69,7 @@ with open('llm_data.csv', 'w') as f:
 
     headers_clean.pop()
     headers_clean.pop()
+    headers_clean.append('size_type')
     w = csv.DictWriter(f, headers_clean)
     w.writeheader()
 
@@ -50,6 +83,9 @@ with open('llm_data.csv', 'w') as f:
         d['Model'] = model_name
         del d['model_name_for_query']
         del d['Model sha']
+        num_param = 0.0 if d['#Params (B)'] == None else float(d['#Params (B)'])
+
+        d['size_type'] = categorize_size(num_param, d['Model'])
 
         # Add the model name and status to the dictionary
         model_status_dict[model_name] = d['Average']
