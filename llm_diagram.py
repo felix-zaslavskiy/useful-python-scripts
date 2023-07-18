@@ -22,13 +22,16 @@ best_models = best_models.sort_values('size_type')
 plt.figure(figsize=(10, 8))
 barplot = sns.barplot(x="size_type", y="Average", data=best_models, color="royalblue", edgecolor='black')
 
-plt.xlabel('Model Size Categories')
-plt.ylabel('Best Average Rating')
-plt.title('Best Model within Each Size Type Based on Average Rating')
+plt.xlabel('Model Size Categories', fontsize=12)
+plt.ylabel('Best Average Rating', fontsize=12)
+plt.title('HugginFace LLM Leaderboard by Model Size', fontweight='bold')
 
 # Annotate the model names on the bars in vertical orientation
 for i in range(best_models.shape[0]):
     model_name = best_models.Model.iloc[i]
+    # Append "(pretrained)" to the model name if its type is "pretrained"
+    if best_models.Type.iloc[i] == 'pretrained':
+        model_name += ' (pretrained only)'
     # Truncate the model name if it's longer than the bar height
     if len(model_name) > best_models.Average.iloc[i]:
         slash_index = model_name.find('/')
@@ -45,7 +48,7 @@ for i in range(best_models.shape[0]):
 
 # Add current date to the top right corner
 current_date = datetime.today().strftime('%Y-%m-%d')
-plt.text(0.95, 0.95, current_date, fontsize=12, transform=plt.gcf().transFigure, horizontalalignment='right')
+plt.text(0.95, 0.95, current_date, fontsize=12, transform=plt.gcf().transFigure, horizontalalignment='right', verticalalignment='top')
 plt.text(0.05, 0.95, "@FZaslavskiy", fontsize=12, transform=plt.gcf().transFigure, verticalalignment='top')
 
 plt.tight_layout()
