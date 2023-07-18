@@ -20,11 +20,14 @@ best_models = best_models.sort_values('size_type')
 
 # Create the plot with the updated order
 plt.figure(figsize=(10, 8))
+
+sns.set_theme(style='whitegrid')
+#sns.set(style='whitegrid', palette='pastel', context='talk', font='Arial', font_scale=1.2)
 barplot = sns.barplot(x="size_type", y="Average", data=best_models, color="royalblue", edgecolor='black')
 
 plt.xlabel('Model Size Categories', fontsize=12)
 plt.ylabel('Best Average Rating', fontsize=12)
-plt.title('HugginFace LLM Leaderboard by Model Size', fontweight='bold')
+plt.title('Hugging Face LLM Leaderboard by Model Size', fontweight='bold')
 
 # Annotate the model names on the bars in vertical orientation
 for i in range(best_models.shape[0]):
