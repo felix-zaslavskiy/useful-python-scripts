@@ -41,6 +41,7 @@ for i in range(best_models.shape[0]):
 # Add current date to the top right corner
 current_date = datetime.today().strftime('%Y-%m-%d')
 plt.text(0.95, 0.95, current_date, fontsize=12, transform=plt.gcf().transFigure, horizontalalignment='right')
+plt.text(0.05, 0.95, "@FZaslavskiy", fontsize=12, transform=plt.gcf().transFigure, verticalalignment='top')
 
 plt.tight_layout()
 plt.show()

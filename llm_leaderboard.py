@@ -6,7 +6,7 @@ import csv
 
 
 client = Client("https://huggingfaceh4-open-llm-leaderboard.hf.space/")
-json_data = client.predict(fn_index=2)
+json_data = client.predict(fn_index=3)
 
 with open(json_data[0], 'r') as file:
     file_data = file.read()
