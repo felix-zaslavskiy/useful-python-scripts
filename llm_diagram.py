@@ -28,9 +28,14 @@ plt.title('Best Model within Each Size Type Based on Average Rating')
 
 # Annotate the model names on the bars in vertical orientation
 for i in range(best_models.shape[0]):
+    model_name = best_models.Model.iloc[i]
+    # Truncate the model name if it's longer than the bar height
+    if len(model_name) > best_models.Average.iloc[i]:
+        slash_index = model_name.find('/')
+        model_name = '...' + model_name[slash_index:]
     plt.text(i,
              best_models.Average.iloc[i]/2,  # Position at half height for better visibility
-             best_models.Model.iloc[i],
+             model_name,
              ha = 'center',
              va = 'center',
              rotation='vertical',
