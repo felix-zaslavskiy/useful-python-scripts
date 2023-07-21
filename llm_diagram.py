@@ -10,7 +10,7 @@ df = pd.read_csv('llm_data.csv')
 best_models = df.loc[df.groupby("size_type")["Average"].idxmax()]
 
 # Define the order for the size_type
-order = ['65B', '40B', '30B', '20B', '16B', '13B', '7B', '6B', '3B', '1B', 'other']
+order = [ '70B', '40B', '30B', '20B', '16B', '13B', '7B', '6B', '3B', '1B', 'other']
 
 # Convert the size_type to a category type with the defined order
 best_models['size_type'] = pd.Categorical(best_models['size_type'], categories=order, ordered=True)
@@ -26,12 +26,13 @@ sns.set_theme(style='whitegrid')
 barplot = sns.barplot(x="size_type", y="Average", data=best_models, color="royalblue", edgecolor='black')
 
 plt.xlabel('Model Size Categories', fontsize=12)
-plt.ylabel('Best Average Rating', fontsize=12)
+plt.ylabel('Average Rating', fontsize=12)
 plt.title('Hugging Face LLM Leaderboard by Model Size', fontweight='bold')
 
 # Annotate the model names on the bars in vertical orientation
 for i in range(best_models.shape[0]):
     model_name = best_models.Model.iloc[i]
+    font_size=14
     # Append "(pretrained)" to the model name if its type is "pretrained"
     if best_models.Type.iloc[i] == 'pretrained':
         model_name += ' (pretrained only)'
@@ -39,13 +40,15 @@ for i in range(best_models.shape[0]):
     if len(model_name) > best_models.Average.iloc[i]:
         slash_index = model_name.find('/')
         model_name = '...' + model_name[slash_index:]
+        model_name = model_name[:-30] + '...'
+
     plt.text(i,
              best_models.Average.iloc[i]/2,  # Position at half height for better visibility
              model_name,
              ha = 'center',
              va = 'center',
              rotation='vertical',
-             fontsize=12,  # Increase font size
+             fontsize=font_size,  # Increase font size
              fontweight='bold',  # Make font bolder
              color='white')  # Change font color for better visibility
 
