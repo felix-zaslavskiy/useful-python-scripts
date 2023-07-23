@@ -28,6 +28,8 @@ def categorize_size(params, name):
             return "13B"
         elif name == 'huggingface/llama-7b':
             return "7B"
+        elif name == 'stabilityai/FreeWilly2':
+            return "70B"
         return "other"
     elif params <= 1.0:
         return "1B"
