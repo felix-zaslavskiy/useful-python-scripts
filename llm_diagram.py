@@ -40,7 +40,8 @@ for i in range(best_models.shape[0]):
     if len(model_name) > best_models.Average.iloc[i]:
         slash_index = model_name.find('/')
         model_name = '...' + model_name[slash_index:]
-        model_name = model_name[:-30] + '...'
+        adjustment_from_right = ''
+        model_name = model_name[:-17] #+ '...'
 
     plt.text(i,
              best_models.Average.iloc[i]/2,  # Position at half height for better visibility

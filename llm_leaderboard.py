@@ -20,15 +20,7 @@ data = data['data']
 
 def categorize_size(params, name):
     if params == 0.0:
-        if name == 'huggingface/llama-65b':
-            return "65B"
-        elif name == 'huggingface/llama-30b':
-            return "30B"
-        elif name == 'huggingface/llama-13b':
-            return "13B"
-        elif name == 'huggingface/llama-7b':
-            return "7B"
-        elif name == 'stabilityai/FreeWilly2':
+        if name == 'stabilityai/FreeWilly2':
             return "70B"
         return "other"
     elif params <= 1.0:
@@ -84,6 +76,7 @@ with open('llm_data.csv', 'w', newline='') as f:
         d['Model'] = model_name
         del d['model_name_for_query']
         del d['Model sha']
+        del d['T']
         num_param = 0.0 if d['#Params (B)'] == None else float(d['#Params (B)'])
 
         d['size_type'] = categorize_size(num_param, d['Model'])
