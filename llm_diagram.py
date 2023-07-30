@@ -10,10 +10,15 @@ df = pd.read_csv('llm_data.csv')
 best_models = df.loc[df.groupby("size_type")["Average"].idxmax()]
 
 # Define the order for the size_type
-order = [ '70B', '40B', '30B', '20B', '16B', '13B', '7B', '6B', '3B', '1B', 'other']
+# can put back 20B or 16B in the future.
+order = [ '70B', '40B', '30B', '13B', '7B', '6B', '3B', '1B']
 
 # Convert the size_type to a category type with the defined order
 best_models['size_type'] = pd.Categorical(best_models['size_type'], categories=order, ordered=True)
+#best_models['size_type'] = best_models['size_type'].astype(str)
+
+# Drop rows where 'size_type' is NaN
+best_models = best_models.dropna(subset=['size_type'])
 
 # Sort the DataFrame according to the new order
 best_models = best_models.sort_values('size_type')

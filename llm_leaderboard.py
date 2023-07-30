@@ -6,7 +6,7 @@ import csv
 
 
 client = Client("https://huggingfaceh4-open-llm-leaderboard.hf.space/")
-json_data = client.predict(fn_index=3)
+json_data = client.predict(fn_index=4)
 
 with open(json_data[0], 'r') as file:
     file_data = file.read()
@@ -21,6 +21,8 @@ data = data['data']
 def categorize_size(params, name):
     if params == 0.0:
         if name == 'stabilityai/FreeWilly2':
+            return "70B"
+        elif name == 'stabilityai/StableBeluga2':
             return "70B"
         return "other"
     elif params <= 1.0:
