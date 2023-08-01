@@ -6,7 +6,15 @@ import csv
 
 
 client = Client("https://huggingfaceh4-open-llm-leaderboard.hf.space/")
-json_data = client.predict(fn_index=4)
+
+json_data = client.predict(
+    fn_index=4)
+
+#json_data = client.predict(
+#    "null",	# str representing filepath to JSON file in 'parameter_13' Dataframe component
+#    "null",	# str representing filepath to JSON file in 'parameter_12' Dataframe component
+#    "all",
+#    fn_index=2)
 
 with open(json_data[0], 'r') as file:
     file_data = file.read()

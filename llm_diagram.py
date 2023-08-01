@@ -10,8 +10,8 @@ df = pd.read_csv('llm_data.csv')
 best_models = df.loc[df.groupby("size_type")["Average"].idxmax()]
 
 # Define the order for the size_type
-# can put back 20B or 16B in the future.
-order = [ '70B', '40B', '30B', '13B', '7B', '6B', '3B', '1B']
+# can put back 20B , 40B or 16B in the future.
+order = [ '70B', '30B', '13B', '7B', '6B', '3B', '1B']
 
 # Convert the size_type to a category type with the defined order
 best_models['size_type'] = pd.Categorical(best_models['size_type'], categories=order, ordered=True)
@@ -37,16 +37,23 @@ plt.title('Hugging Face LLM Leaderboard by Model Size', fontweight='bold')
 # Annotate the model names on the bars in vertical orientation
 for i in range(best_models.shape[0]):
     model_name = best_models.Model.iloc[i]
-    font_size=14
+    font_size=16
     # Append "(pretrained)" to the model name if its type is "pretrained"
-    if best_models.Type.iloc[i] == 'pretrained':
-        model_name += ' (pretrained only)'
+    #if best_models.Type.iloc[i] == 'pretrained':
+    #    model_name += ' (pretrained only)'
     # Truncate the model name if it's longer than the bar height
-    if len(model_name) > best_models.Average.iloc[i]:
+    print(len(model_name))
+    print(best_models.Average.iloc[i])
+    if len(model_name) > best_models.Average.iloc[i] * 0.7:
         slash_index = model_name.find('/')
+        name_length = len(model_name) - slash_index + 1
         model_name = '...' + model_name[slash_index:]
-        adjustment_from_right = ''
-        model_name = model_name[:-17] #+ '...'
+        offset = 22
+        if name_length > offset:
+            dot_dot = '...'
+        else:
+            dot_dot = ''
+        model_name = model_name[:offset]  + dot_dot
 
     plt.text(i,
              best_models.Average.iloc[i]/2,  # Position at half height for better visibility
