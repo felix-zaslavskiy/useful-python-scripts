@@ -42,8 +42,8 @@ for i in range(best_models.shape[0]):
     #if best_models.Type.iloc[i] == 'pretrained':
     #    model_name += ' (pretrained only)'
     # Truncate the model name if it's longer than the bar height
-    print(len(model_name))
-    print(best_models.Average.iloc[i])
+    #print(len(model_name))
+    #print(best_models.Average.iloc[i])
     if len(model_name) > best_models.Average.iloc[i] * 0.7:
         slash_index = model_name.find('/')
         name_length = len(model_name) - slash_index + 1
