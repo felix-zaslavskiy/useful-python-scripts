@@ -51,6 +51,8 @@ def categorize_size(params, name):
         return "30B"
     elif params <= 45.0:
         return "40B"
+    elif params <= 66.0:
+        return "65B"
     elif params <= 75.0:
         return "70B"
     else:
