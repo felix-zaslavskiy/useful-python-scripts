@@ -86,7 +86,6 @@ class ACGame:
                 fan_canvas.create_line(center_x, center_y, center_x, center_y-15, width=2)
             ]
 
-            # SSD for temperature with more height
             ssd_canvas = tk.Canvas(frame, width=60, height=35, bg='black')
             ssd_canvas.pack(pady=2)
             ssd_segments = self.create_ssd(ssd_canvas, 77)
@@ -136,18 +135,15 @@ class ACGame:
         ones = temp % 10
         segment_list = []
 
-        # Draw tens digit
         x_offset = 5
         segment_list.extend(self.draw_digit(canvas, segments[tens], x_offset))
 
-        # Draw ones digit
         x_offset = 30
         segment_list.extend(self.draw_digit(canvas, segments[ones], x_offset))
 
         return segment_list
 
     def draw_digit(self, canvas, pattern, x_offset):
-        # Segment positions shifted down by 5 pixels
         segment_coords = [
             (x_offset + 5, 7, x_offset + 15, 7),    # Top
             (x_offset + 5, 9, x_offset + 5, 19),   # Top-left
@@ -298,7 +294,7 @@ class ACGame:
         energy_width = (self.energy_use / self.max_energy) * 200
         if energy_width > 200:
             energy_width = 200
-        energy_color = 'green' if self.energy_use <= 50 else 'yellow' if self_energy_use <= 80 else 'red'
+        energy_color = 'green' if self.energy_use <= 50 else 'yellow' if self.energy_use <= 80 else 'red'  # Fixed typo
         self.energy_canvas.coords(self.energy_bar, 1, 1, energy_width, 19)
         self.energy_canvas.itemconfig(self.energy_bar, fill=energy_color)
         self.energy_label.config(text=f"Energy: {self.energy_use:.1f}/{self.max_energy}")
