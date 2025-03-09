@@ -86,9 +86,12 @@ class ACGame:
                 fan_canvas.create_line(center_x, center_y, center_x, center_y-15, width=2)
             ]
 
-            temp_label = ttk.Label(frame, text="Temp: 77°F")
+            # SSD for temperature
+            ssd_canvas = tk.Canvas(frame, width=60, height=30, bg='black')
+            ssd_canvas.pack(pady=2)
+            ssd_segments = self.create_ssd(ssd_canvas, 77)  # Initial 77°F
+
             comfort_label = ttk.Label(frame, text="Comfort: 65%")
-            temp_label.pack(pady=2)
             comfort_label.pack(pady=2)
 
             sel_canvas = tk.Canvas(frame, width=100, height=20, bg='white', highlightthickness=0)
@@ -103,7 +106,8 @@ class ACGame:
                 'temp_bar': temp_bar,
                 'fan_canvas': fan_canvas,
                 'fan_blades': blades,
-                'temp_label': temp_label,
+                'ssd_canvas': ssd_canvas,
+                'ssd_segments': ssd_segments,
                 'comfort_label': comfort_label,
                 'sel_canvas': sel_canvas,
                 'rect': rect
@@ -113,6 +117,69 @@ class ACGame:
 
         ttk.Button(self.root, text="Start Game (S)", command=self.start_game).pack(pady=5)
         ttk.Button(self.root, text="Reset (R)", command=self.reset_game).pack(pady=5)
+
+    def create_ssd(self, canvas, temp):
+        # Seven-segment display patterns (0-9)
+        # Order: top, top-left, top-right, middle, bottom-left, bottom-right, bottom
+        segments = [
+            [1, 1, 1, 0, 1, 1, 1],  # 0
+            [0, 0, 1, 0, 0, 1, 0],  # 1
+            [1, 0, 1, 1, 1, 0, 1],  # 2
+            [1, 0, 1, 1, 0, 1, 1],  # 3
+            [0, 1, 1, 1, 0, 1, 0],  # 4
+            [1, 1, 0, 1, 0, 1, 1],  # 5
+            [1, 1, 0, 1, 1, 1, 1],  # 6
+            [1, 0, 1, 0, 0, 1, 0],  # 7
+            [1, 1, 1, 1, 1, 1, 1],  # 8
+            [1, 1, 1, 1, 0, 1, 1]   # 9
+        ]
+
+        tens = temp // 10
+        ones = temp % 10
+        segment_list = []
+
+        # Draw tens digit
+        x_offset = 5
+        segment_list.extend(self.draw_digit(canvas, segments[tens], x_offset))
+
+        # Draw ones digit
+        x_offset = 30
+        segment_list.extend(self.draw_digit(canvas, segments[ones], x_offset))
+
+        return segment_list
+
+    def draw_digit(self, canvas, pattern, x_offset):
+        # Segment positions (x1, y1, x2, y2)
+        segment_coords = [
+            (x_offset + 5, 2, x_offset + 15, 2),    # Top
+            (x_offset + 5, 4, x_offset + 5, 14),   # Top-left
+            (x_offset + 15, 4, x_offset + 15, 14), # Top-right
+            (x_offset + 5, 15, x_offset + 15, 15), # Middle
+            (x_offset + 5, 16, x_offset + 5, 26),  # Bottom-left
+            (x_offset + 15, 16, x_offset + 15, 26),# Bottom-right
+            (x_offset + 5, 27, x_offset + 15, 27)  # Bottom
+        ]
+
+        segments = []
+        for i, on in enumerate(pattern):
+            if on:
+                segments.append(canvas.create_line(
+                    segment_coords[i][0], segment_coords[i][1],
+                    segment_coords[i][2], segment_coords[i][3],
+                    fill='red', width=2
+                ))
+            else:
+                segments.append(None)  # Placeholder for off segments
+        return segments
+
+    def update_ssd(self, canvas, segments, temp):
+        # Clear existing segments
+        for seg in segments:
+            if seg:
+                canvas.delete(seg)
+
+        # Redraw with new temperature
+        return self.create_ssd(canvas, temp)
 
     def start_game(self, event=None):
         if not self.game_started:
@@ -221,10 +288,15 @@ class ACGame:
             self.house_controls[i]['temp_canvas'].itemconfig(
                 self.house_controls[i]['temp_bar'], fill=temp_color)
 
+            # Update SSD
+            self.house_controls[i]['ssd_segments'] = self.update_ssd(
+                self.house_controls[i]['ssd_canvas'],
+                self.house_controls[i]['ssd_segments'],
+                temp
+            )
+
             self.house_controls[i]['comfort_label'].config(
                 text=f"Comfort: {comfort:.0f}%")
-            self.house_controls[i]['temp_label'].config(
-                text=f"Temp: {temp:.0f}°F")
 
         avg_comfort = total_comfort / self.num_houses
 
@@ -271,8 +343,12 @@ class ACGame:
                 self.house_controls[i]['temp_bar'], 1, 1, 101, 19)
             self.house_controls[i]['temp_canvas'].itemconfig(
                 self.house_controls[i]['temp_bar'], fill='#FFA500')
+            self.house_controls[i]['ssd_segments'] = self.update_ssd(
+                self.house_controls[i]['ssd_canvas'],
+                self.house_controls[i]['ssd_segments'],
+                77
+            )
             self.house_controls[i]['comfort_label'].config(text="Comfort: 65%")
-            self.house_controls[i]['temp_label'].config(text="Temp: 77°F")
             center_x, center_y = 25, 25
             for j, blade in enumerate(self.house_controls[i]['fan_blades']):
                 angle = math.radians(j * 90)
