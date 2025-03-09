@@ -51,6 +51,8 @@ class ACGame:
                                         highlightbackground='black')
         self.comfort_canvas.pack()
         self.comfort_bar = self.comfort_canvas.create_rectangle(1, 1, 130, 19, fill='yellow')
+        self.comfort_percent_label = ttk.Label(self.overall_comfort_frame, text="65%/100%")
+        self.comfort_percent_label.pack()
 
         # House controls
         self.houses_frame = ttk.Frame(self.root)
@@ -185,8 +187,7 @@ class ACGame:
             return
         for i, house in enumerate(self.house_controls):
             temp = self.thermostats[i]
-            # Speed: faster at lower temps (30 at 61°F, 5 at 82°F)
-            speed = int(30 - (temp - 61) * (25 / 21))  # Linear from 30 to 5
+            speed = int(30 - (temp - 61) * (25 / 21))
             self.fan_angles[i] = (self.fan_angles[i] + speed) % 360
             center_x, center_y = 25, 25
             for j, blade in enumerate(house['fan_blades']):
@@ -240,6 +241,7 @@ class ACGame:
         comfort_color = 'red' if avg_comfort < 50 else 'yellow' if avg_comfort < 80 else 'green'
         self.comfort_canvas.coords(self.comfort_bar, 1, 1, comfort_width, 19)
         self.comfort_canvas.itemconfig(self.comfort_bar, fill=comfort_color)
+        self.comfort_percent_label.config(text=f"{avg_comfort:.0f}%/100%")
 
         if self.energy_use > self.max_energy:
             self.show_message("Game Over", "Energy usage exceeded maximum!")
@@ -282,6 +284,7 @@ class ACGame:
         self.energy_label.config(text="Energy: 0/100")
         self.comfort_canvas.coords(self.comfort_bar, 1, 1, 130, 19)
         self.comfort_canvas.itemconfig(self.comfort_bar, fill='yellow')
+        self.comfort_percent_label.config(text="65%/100%")
         self.update_house_selection()
 
 def main():
