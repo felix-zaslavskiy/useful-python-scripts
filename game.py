@@ -9,7 +9,7 @@ class ACGame:
 
         # Game variables
         self.num_houses = 3
-        self.thermostats = [25] * self.num_houses  # Starting at warmer temp
+        self.thermostats = [25] * self.num_houses
         self.comfort_levels = [50] * self.num_houses
         self.energy_use = 0
         self.max_energy = 100
@@ -21,11 +21,18 @@ class ACGame:
         self.create_widgets()
 
     def create_widgets(self):
+        # Style configuration
+        self.style = ttk.Style()
+        self.style.configure("green.Horizontal.TProgressbar", background='green')
+        self.style.configure("yellow.Horizontal.TProgressbar", background='yellow')
+        self.style.configure("red.Horizontal.TProgressbar", background='red')
+
         # Overall meters
         self.energy_frame = ttk.LabelFrame(self.root, text="Energy Meter")
         self.energy_frame.pack(padx=10, pady=5)
         self.energy_meter = ttk.Progressbar(self.energy_frame, length=200,
-                                            maximum=self.max_energy)
+                                            maximum=self.max_energy,
+                                            style="green.Horizontal.TProgressbar")
         self.energy_meter.pack()
         self.energy_label = ttk.Label(self.energy_frame, text="Energy: 0/100")
         self.energy_label.pack()
@@ -48,7 +55,7 @@ class ACGame:
             comfort.pack()
 
             temp = ttk.Scale(frame, from_=16, to=28, orient=tk.HORIZONTAL)
-            temp.set(25)  # Starting at 25°C
+            temp.set(25)
             temp.config(command=lambda x, idx=i: self.update_thermostat(idx, float(x)))
             temp.pack()
 
@@ -64,7 +71,6 @@ class ACGame:
                 'comfort_label': comfort_label
             })
 
-        # Start and Reset buttons
         ttk.Button(self.root, text="Start Game", command=self.start_game).pack(pady=5)
         ttk.Button(self.root, text="Reset", command=self.reset_game).pack(pady=5)
 
@@ -103,15 +109,18 @@ class ACGame:
         self.energy_meter.config(value=self.energy_use)
         self.energy_label.config(text=f"Energy: {self.energy_use:.1f}/{self.max_energy}")
 
-        # Update energy meter color based on usage
+        # Update energy meter color
+        print(f"Energy use: {self.energy_use}")  # Debug print
         if self.energy_use > 80:
-            self.energy_meter.config(style="red.Horizontal.TProgressbar")
+            self.energy_meter.configure(style="red.Horizontal.TProgressbar")
+            print("Should be red")
         elif self.energy_use > 50:
-            self.energy_meter.config(style="yellow.Horizontal.TProgressbar")
+            self.energy_meter.configure(style="yellow.Horizontal.TProgressbar")
+            print("Should be yellow")
         else:
-            self.energy_meter.config(style="green.Horizontal.TProgressbar")
+            self.energy_meter.configure(style="green.Horizontal.TProgressbar")
+            print("Should be green")
 
-        # Check game over condition
         if self.energy_use > self.max_energy:
             self.show_message("Game Over", "Energy usage exceeded maximum!")
             self.game_over = True
@@ -132,19 +141,12 @@ class ACGame:
             self.house_controls[i]['temp'].set(25)
             self.house_controls[i]['comfort'].config(value=50)
             self.house_controls[i]['comfort_label'].config(text="Comfort: 50%")
-        self.energy_meter.config(value=0)
+        self.energy_meter.config(value=0, style="green.Horizontal.TProgressbar")
         self.energy_label.config(text="Energy: 0/100")
         self.overall_comfort.config(value=50)
 
 def main():
     root = tk.Tk()
-
-    # Configure progressbar styles for color feedback
-    style = ttk.Style()
-    style.configure("green.Horizontal.TProgressbar", foreground='green', background='green')
-    style.configure("yellow.Horizontal.TProgressbar", foreground='yellow', background='yellow')
-    style.configure("red.Horizontal.TProgressbar", foreground='red', background='red')
-
     app = ACGame(root)
     root.mainloop()
 
