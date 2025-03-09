@@ -17,7 +17,7 @@ class ACGame:
         self.game_over = False
         self.game_started = False
         self.selected_house = 0
-        self.fan_angles = [0] * self.num_houses  # For fan rotation
+        self.fan_angles = [0] * self.num_houses
 
         # GUI Setup
         self.house_controls = []
@@ -73,7 +73,6 @@ class ACGame:
             temp_canvas.pack(pady=2)
             temp_bar = temp_canvas.create_rectangle(1, 1, 101, 19, fill='#FFA500')
 
-            # Fan canvas
             fan_canvas = tk.Canvas(frame, width=50, height=50, bg='white')
             fan_canvas.pack(pady=2)
             center_x, center_y = 25, 25
@@ -186,8 +185,8 @@ class ACGame:
             return
         for i, house in enumerate(self.house_controls):
             temp = self.thermostats[i]
-            # Speed: faster at lower temps (20 at 61°F, 5 at 82°F)
-            speed = int(20 - (temp - 61) * (15 / 21))  # Linear from 20 to 5
+            # Speed: faster at lower temps (30 at 61°F, 5 at 82°F)
+            speed = int(30 - (temp - 61) * (25 / 21))  # Linear from 30 to 5
             self.fan_angles[i] = (self.fan_angles[i] + speed) % 360
             center_x, center_y = 25, 25
             for j, blade in enumerate(house['fan_blades']):
@@ -195,7 +194,7 @@ class ACGame:
                 x = center_x + 15 * math.cos(angle)
                 y = center_y + 15 * math.sin(angle)
                 house['fan_canvas'].coords(blade, center_x, center_y, x, y)
-        self.root.after(50, self.animate_fans)  # Update every 50ms
+        self.root.after(50, self.animate_fans)
 
     def update_game(self):
         if not self.game_started or self.game_over:
@@ -272,7 +271,6 @@ class ACGame:
                 self.house_controls[i]['temp_bar'], fill='#FFA500')
             self.house_controls[i]['comfort_label'].config(text="Comfort: 65%")
             self.house_controls[i]['temp_label'].config(text="Temp: 77°F")
-            # Reset fan blades to initial position
             center_x, center_y = 25, 25
             for j, blade in enumerate(self.house_controls[i]['fan_blades']):
                 angle = math.radians(j * 90)
