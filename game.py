@@ -15,13 +15,20 @@ class ACGame:
         self.max_energy = 100
         self.game_over = False
         self.game_started = False
+        self.selected_house = 0  # Currently selected house (0-based index)
 
         # GUI Setup
         self.house_controls = []
         self.create_widgets()
 
+        # Bind arrow keys
+        self.root.bind('<Left>', self.select_previous_house)
+        self.root.bind('<Right>', self.select_next_house)
+        self.root.bind('<Up>', self.increase_temp)
+        self.root.bind('<Down>', self.decrease_temp)
+
     def create_widgets(self):
-        # Energy meter using Canvas
+        # Energy meter
         self.energy_frame = ttk.LabelFrame(self.root, text="Energy Meter")
         self.energy_frame.pack(padx=10, pady=5)
         self.energy_canvas = tk.Canvas(self.energy_frame, width=202, height=20,
@@ -32,7 +39,7 @@ class ACGame:
         self.energy_label = ttk.Label(self.energy_frame, text="Energy: 0/100")
         self.energy_label.pack()
 
-        # Overall comfort using Canvas
+        # Overall comfort
         self.overall_comfort_frame = ttk.LabelFrame(self.root, text="Overall Comfort")
         self.overall_comfort_frame.pack(padx=10, pady=5)
         self.comfort_canvas = tk.Canvas(self.overall_comfort_frame, width=202, height=20,
@@ -52,22 +59,20 @@ class ACGame:
             comfort = ttk.Progressbar(frame, length=100, maximum=100)
             comfort.pack()
 
-            temp = ttk.Scale(frame, from_=16, to=28, orient=tk.HORIZONTAL)
-            temp.set(25)
-            temp.config(command=lambda x, idx=i: self.update_thermostat(idx, float(x)))
-            temp.pack()
-
             temp_label = ttk.Label(frame, text="Temp: 25°C")
             comfort_label = ttk.Label(frame, text="Comfort: 50%")
             temp_label.pack()
             comfort_label.pack()
 
             self.house_controls.append({
+                'frame': frame,  # Store frame for border color
                 'comfort': comfort,
-                'temp': temp,
                 'temp_label': temp_label,
                 'comfort_label': comfort_label
             })
+
+        # Highlight first house
+        self.update_house_selection()
 
         ttk.Button(self.root, text="Start Game", command=self.start_game).pack(pady=5)
         ttk.Button(self.root, text="Reset", command=self.reset_game).pack(pady=5)
@@ -77,13 +82,35 @@ class ACGame:
             self.game_started = True
             self.update_game()
 
-    def update_thermostat(self, house_idx, temp):
-        if house_idx < len(self.thermostats):
-            self.thermostats[house_idx] = temp
-            self.house_controls[house_idx]['temp_label'].config(
-                text=f"Temp: {temp:.1f}°C")
-            if self.game_started:
+    def select_previous_house(self, event):
+        if not self.game_over:
+            self.selected_house = (self.selected_house - 1) % self.num_houses
+            self.update_house_selection()
+
+    def select_next_house(self, event):
+        if not self.game_over:
+            self.selected_house = (self.selected_house + 1) % self.num_houses
+            self.update_house_selection()
+
+    def increase_temp(self, event):
+        if not self.game_over and self.game_started:
+            temp = self.thermostats[self.selected_house]
+            if temp < 28:
+                self.thermostats[self.selected_house] = min(28, temp + 1)
                 self.update_game()
+
+    def decrease_temp(self, event):
+        if not self.game_over and self.game_started:
+            temp = self.thermostats[self.selected_house]
+            if temp > 16:
+                self.thermostats[self.selected_house] = max(16, temp - 1)
+                self.update_game()
+
+    def update_house_selection(self):
+        for i, house in enumerate(self.house_controls):
+            # Highlight selected house with blue border, others with default
+            color = 'blue' if i == self.selected_house else 'black'
+            house['frame'].config(style=f"{color}.TLabelframe")
 
     def update_game(self):
         if not self.game_started or self.game_over:
@@ -99,6 +126,8 @@ class ACGame:
             self.house_controls[i]['comfort'].config(value=comfort)
             self.house_controls[i]['comfort_label'].config(
                 text=f"Comfort: {comfort:.0f}%")
+            self.house_controls[i]['temp_label'].config(
+                text=f"Temp: {temp:.0f}°C")
 
         avg_comfort = total_comfort / self.num_houses
 
@@ -113,7 +142,7 @@ class ACGame:
         self.energy_label.config(text=f"Energy: {self.energy_use:.1f}/{self.max_energy}")
 
         # Update Comfort meter
-        comfort_width = (avg_comfort / 100) * 200  # Comfort is 0-100 scale
+        comfort_width = (avg_comfort / 100) * 200
         comfort_color = 'red' if avg_comfort < 50 else 'yellow' if avg_comfort < 80 else 'green'
         self.comfort_canvas.coords(self.comfort_bar, 1, 1, comfort_width, 19)
         self.comfort_canvas.itemconfig(self.comfort_bar, fill=comfort_color)
@@ -133,19 +162,27 @@ class ACGame:
     def reset_game(self):
         self.game_over = False
         self.game_started = False
+        self.selected_house = 0
         for i in range(self.num_houses):
             self.thermostats[i] = 25
-            self.house_controls[i]['temp'].set(25)
             self.house_controls[i]['comfort'].config(value=50)
             self.house_controls[i]['comfort_label'].config(text="Comfort: 50%")
+            self.house_controls[i]['temp_label'].config(text="Temp: 25°C")
         self.energy_canvas.coords(self.energy_bar, 1, 1, 1, 19)
         self.energy_canvas.itemconfig(self.energy_bar, fill='green')
         self.energy_label.config(text="Energy: 0/100")
-        self.comfort_canvas.coords(self.comfort_bar, 1, 1, 100, 19)  # 50% comfort
+        self.comfort_canvas.coords(self.comfort_bar, 1, 1, 100, 19)
         self.comfort_canvas.itemconfig(self.comfort_bar, fill='yellow')
+        self.update_house_selection()
 
 def main():
     root = tk.Tk()
+
+    # Configure styles for house selection
+    style = ttk.Style()
+    style.configure("blue.TLabelframe", bordercolor="blue")
+    style.configure("black.TLabelframe", bordercolor="black")
+
     app = ACGame(root)
     root.mainloop()
 
