@@ -24,18 +24,22 @@ class ACGame:
         # Energy meter using Canvas
         self.energy_frame = ttk.LabelFrame(self.root, text="Energy Meter")
         self.energy_frame.pack(padx=10, pady=5)
-        self.energy_canvas = tk.Canvas(self.energy_frame, width=202, height=20, bg='white', highlightthickness=1, highlightbackground='black')
+        self.energy_canvas = tk.Canvas(self.energy_frame, width=202, height=20,
+                                       bg='white', highlightthickness=1,
+                                       highlightbackground='black')
         self.energy_canvas.pack()
         self.energy_bar = self.energy_canvas.create_rectangle(1, 1, 1, 19, fill='green')
         self.energy_label = ttk.Label(self.energy_frame, text="Energy: 0/100")
         self.energy_label.pack()
 
-        # Overall comfort
+        # Overall comfort using Canvas
         self.overall_comfort_frame = ttk.LabelFrame(self.root, text="Overall Comfort")
         self.overall_comfort_frame.pack(padx=10, pady=5)
-        self.overall_comfort = ttk.Progressbar(self.overall_comfort_frame,
-                                               length=200, maximum=100)
-        self.overall_comfort.pack()
+        self.comfort_canvas = tk.Canvas(self.overall_comfort_frame, width=202, height=20,
+                                        bg='white', highlightthickness=1,
+                                        highlightbackground='black')
+        self.comfort_canvas.pack()
+        self.comfort_bar = self.comfort_canvas.create_rectangle(1, 1, 100, 19, fill='yellow')
 
         # House controls
         self.houses_frame = ttk.Frame(self.root)
@@ -97,18 +101,22 @@ class ACGame:
                 text=f"Comfort: {comfort:.0f}%")
 
         avg_comfort = total_comfort / self.num_houses
-        self.overall_comfort.config(value=avg_comfort)
 
+        # Update Energy meter
         self.energy_use = sum(max(0, 26 - temp) * 5 for temp in self.thermostats)
+        energy_width = (self.energy_use / self.max_energy) * 200
+        if energy_width > 200:
+            energy_width = 200
+        energy_color = 'green' if self.energy_use <= 50 else 'yellow' if self.energy_use <= 80 else 'red'
+        self.energy_canvas.coords(self.energy_bar, 1, 1, energy_width, 19)
+        self.energy_canvas.itemconfig(self.energy_bar, fill=energy_color)
         self.energy_label.config(text=f"Energy: {self.energy_use:.1f}/{self.max_energy}")
 
-        # Update Canvas energy meter
-        width = (self.energy_use / self.max_energy) * 200  # 200 is canvas width - 2 for borders
-        if width > 200:
-            width = 200
-        color = 'green' if self.energy_use <= 50 else 'yellow' if self.energy_use <= 80 else 'red'
-        self.energy_canvas.coords(self.energy_bar, 1, 1, width, 19)
-        self.energy_canvas.itemconfig(self.energy_bar, fill=color)
+        # Update Comfort meter
+        comfort_width = (avg_comfort / 100) * 200  # Comfort is 0-100 scale
+        comfort_color = 'red' if avg_comfort < 50 else 'yellow' if avg_comfort < 80 else 'green'
+        self.comfort_canvas.coords(self.comfort_bar, 1, 1, comfort_width, 19)
+        self.comfort_canvas.itemconfig(self.comfort_bar, fill=comfort_color)
 
         if self.energy_use > self.max_energy:
             self.show_message("Game Over", "Energy usage exceeded maximum!")
@@ -133,7 +141,8 @@ class ACGame:
         self.energy_canvas.coords(self.energy_bar, 1, 1, 1, 19)
         self.energy_canvas.itemconfig(self.energy_bar, fill='green')
         self.energy_label.config(text="Energy: 0/100")
-        self.overall_comfort.config(value=50)
+        self.comfort_canvas.coords(self.comfort_bar, 1, 1, 100, 19)  # 50% comfort
+        self.comfort_canvas.itemconfig(self.comfort_bar, fill='yellow')
 
 def main():
     root = tk.Tk()
