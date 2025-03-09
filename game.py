@@ -15,7 +15,7 @@ class ACGame:
         self.max_energy = 100
         self.game_over = False
         self.game_started = False
-        self.selected_house = 0  # Currently selected house (0-based index)
+        self.selected_house = 0
 
         # GUI Setup
         self.house_controls = []
@@ -57,21 +57,28 @@ class ACGame:
             frame.pack(side=tk.LEFT, padx=5)
 
             comfort = ttk.Progressbar(frame, length=100, maximum=100)
-            comfort.pack()
+            comfort.pack(pady=2)
 
             temp_label = ttk.Label(frame, text="Temp: 25°C")
             comfort_label = ttk.Label(frame, text="Comfort: 50%")
-            temp_label.pack()
-            comfort_label.pack()
+            temp_label.pack(pady=2)
+            comfort_label.pack(pady=2)
+
+            # Canvas for selection rectangle
+            canvas = tk.Canvas(frame, width=100, height=20, bg='white', highlightthickness=0)
+            canvas.pack(pady=2)
+            rect = canvas.create_rectangle(2, 2, 98, 18, outline='blue', width=2) if i == 0 else None
 
             self.house_controls.append({
-                'frame': frame,  # Store frame for border color
+                'frame': frame,
                 'comfort': comfort,
                 'temp_label': temp_label,
-                'comfort_label': comfort_label
+                'comfort_label': comfort_label,
+                'canvas': canvas,
+                'rect': rect  # Will be None for non-selected houses initially
             })
 
-        # Highlight first house
+        # Initial selection
         self.update_house_selection()
 
         ttk.Button(self.root, text="Start Game", command=self.start_game).pack(pady=5)
@@ -108,9 +115,16 @@ class ACGame:
 
     def update_house_selection(self):
         for i, house in enumerate(self.house_controls):
-            # Highlight selected house with blue border, others with default
-            color = 'blue' if i == self.selected_house else 'black'
-            house['frame'].config(style=f"{color}.TLabelframe")
+            if i == self.selected_house:
+                # Create rectangle if it doesn't exist
+                if house['rect'] is None:
+                    house['rect'] = house['canvas'].create_rectangle(2, 2, 98, 18,
+                                                                     outline='blue', width=2)
+            else:
+                # Remove rectangle if it exists
+                if house['rect'] is not None:
+                    house['canvas'].delete(house['rect'])
+                    house['rect'] = None
 
     def update_game(self):
         if not self.game_started or self.game_over:
@@ -177,12 +191,6 @@ class ACGame:
 
 def main():
     root = tk.Tk()
-
-    # Configure styles for house selection
-    style = ttk.Style()
-    style.configure("blue.TLabelframe", bordercolor="blue")
-    style.configure("black.TLabelframe", bordercolor="black")
-
     app = ACGame(root)
     root.mainloop()
 
