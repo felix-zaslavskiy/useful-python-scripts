@@ -21,22 +21,16 @@ class ACGame:
         self.create_widgets()
 
     def create_widgets(self):
-        # Style configuration
-        self.style = ttk.Style()
-        self.style.configure("green.Horizontal.TProgressbar", background='green')
-        self.style.configure("yellow.Horizontal.TProgressbar", background='yellow')
-        self.style.configure("red.Horizontal.TProgressbar", background='red')
-
-        # Overall meters
+        # Energy meter using Canvas
         self.energy_frame = ttk.LabelFrame(self.root, text="Energy Meter")
         self.energy_frame.pack(padx=10, pady=5)
-        self.energy_meter = ttk.Progressbar(self.energy_frame, length=200,
-                                            maximum=self.max_energy,
-                                            style="green.Horizontal.TProgressbar")
-        self.energy_meter.pack()
+        self.energy_canvas = tk.Canvas(self.energy_frame, width=202, height=20, bg='white', highlightthickness=1, highlightbackground='black')
+        self.energy_canvas.pack()
+        self.energy_bar = self.energy_canvas.create_rectangle(1, 1, 1, 19, fill='green')
         self.energy_label = ttk.Label(self.energy_frame, text="Energy: 0/100")
         self.energy_label.pack()
 
+        # Overall comfort
         self.overall_comfort_frame = ttk.LabelFrame(self.root, text="Overall Comfort")
         self.overall_comfort_frame.pack(padx=10, pady=5)
         self.overall_comfort = ttk.Progressbar(self.overall_comfort_frame,
@@ -106,20 +100,15 @@ class ACGame:
         self.overall_comfort.config(value=avg_comfort)
 
         self.energy_use = sum(max(0, 26 - temp) * 5 for temp in self.thermostats)
-        self.energy_meter.config(value=self.energy_use)
         self.energy_label.config(text=f"Energy: {self.energy_use:.1f}/{self.max_energy}")
 
-        # Update energy meter color
-        print(f"Energy use: {self.energy_use}")  # Debug print
-        if self.energy_use > 80:
-            self.energy_meter.configure(style="red.Horizontal.TProgressbar")
-            print("Should be red")
-        elif self.energy_use > 50:
-            self.energy_meter.configure(style="yellow.Horizontal.TProgressbar")
-            print("Should be yellow")
-        else:
-            self.energy_meter.configure(style="green.Horizontal.TProgressbar")
-            print("Should be green")
+        # Update Canvas energy meter
+        width = (self.energy_use / self.max_energy) * 200  # 200 is canvas width - 2 for borders
+        if width > 200:
+            width = 200
+        color = 'green' if self.energy_use <= 50 else 'yellow' if self.energy_use <= 80 else 'red'
+        self.energy_canvas.coords(self.energy_bar, 1, 1, width, 19)
+        self.energy_canvas.itemconfig(self.energy_bar, fill=color)
 
         if self.energy_use > self.max_energy:
             self.show_message("Game Over", "Energy usage exceeded maximum!")
@@ -141,7 +130,8 @@ class ACGame:
             self.house_controls[i]['temp'].set(25)
             self.house_controls[i]['comfort'].config(value=50)
             self.house_controls[i]['comfort_label'].config(text="Comfort: 50%")
-        self.energy_meter.config(value=0, style="green.Horizontal.TProgressbar")
+        self.energy_canvas.coords(self.energy_bar, 1, 1, 1, 19)
+        self.energy_canvas.itemconfig(self.energy_bar, fill='green')
         self.energy_label.config(text="Energy: 0/100")
         self.overall_comfort.config(value=50)
 
