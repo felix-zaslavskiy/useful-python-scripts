@@ -86,10 +86,10 @@ class ACGame:
                 fan_canvas.create_line(center_x, center_y, center_x, center_y-15, width=2)
             ]
 
-            # SSD for temperature
-            ssd_canvas = tk.Canvas(frame, width=60, height=30, bg='black')
+            # SSD for temperature with more height
+            ssd_canvas = tk.Canvas(frame, width=60, height=35, bg='black')
             ssd_canvas.pack(pady=2)
-            ssd_segments = self.create_ssd(ssd_canvas, 77)  # Initial 77°F
+            ssd_segments = self.create_ssd(ssd_canvas, 77)
 
             comfort_label = ttk.Label(frame, text="Comfort: 65%")
             comfort_label.pack(pady=2)
@@ -119,8 +119,6 @@ class ACGame:
         ttk.Button(self.root, text="Reset (R)", command=self.reset_game).pack(pady=5)
 
     def create_ssd(self, canvas, temp):
-        # Seven-segment display patterns (0-9)
-        # Order: top, top-left, top-right, middle, bottom-left, bottom-right, bottom
         segments = [
             [1, 1, 1, 0, 1, 1, 1],  # 0
             [0, 0, 1, 0, 0, 1, 0],  # 1
@@ -149,15 +147,15 @@ class ACGame:
         return segment_list
 
     def draw_digit(self, canvas, pattern, x_offset):
-        # Segment positions (x1, y1, x2, y2)
+        # Segment positions shifted down by 5 pixels
         segment_coords = [
-            (x_offset + 5, 2, x_offset + 15, 2),    # Top
-            (x_offset + 5, 4, x_offset + 5, 14),   # Top-left
-            (x_offset + 15, 4, x_offset + 15, 14), # Top-right
-            (x_offset + 5, 15, x_offset + 15, 15), # Middle
-            (x_offset + 5, 16, x_offset + 5, 26),  # Bottom-left
-            (x_offset + 15, 16, x_offset + 15, 26),# Bottom-right
-            (x_offset + 5, 27, x_offset + 15, 27)  # Bottom
+            (x_offset + 5, 7, x_offset + 15, 7),    # Top
+            (x_offset + 5, 9, x_offset + 5, 19),   # Top-left
+            (x_offset + 15, 9, x_offset + 15, 19), # Top-right
+            (x_offset + 5, 20, x_offset + 15, 20), # Middle
+            (x_offset + 5, 21, x_offset + 5, 31),  # Bottom-left
+            (x_offset + 15, 21, x_offset + 15, 31),# Bottom-right
+            (x_offset + 5, 32, x_offset + 15, 32)  # Bottom
         ]
 
         segments = []
@@ -169,16 +167,13 @@ class ACGame:
                     fill='red', width=2
                 ))
             else:
-                segments.append(None)  # Placeholder for off segments
+                segments.append(None)
         return segments
 
     def update_ssd(self, canvas, segments, temp):
-        # Clear existing segments
         for seg in segments:
             if seg:
                 canvas.delete(seg)
-
-        # Redraw with new temperature
         return self.create_ssd(canvas, temp)
 
     def start_game(self, event=None):
@@ -288,7 +283,6 @@ class ACGame:
             self.house_controls[i]['temp_canvas'].itemconfig(
                 self.house_controls[i]['temp_bar'], fill=temp_color)
 
-            # Update SSD
             self.house_controls[i]['ssd_segments'] = self.update_ssd(
                 self.house_controls[i]['ssd_canvas'],
                 self.house_controls[i]['ssd_segments'],
@@ -304,7 +298,7 @@ class ACGame:
         energy_width = (self.energy_use / self.max_energy) * 200
         if energy_width > 200:
             energy_width = 200
-        energy_color = 'green' if self.energy_use <= 50 else 'yellow' if self.energy_use <= 80 else 'red'
+        energy_color = 'green' if self.energy_use <= 50 else 'yellow' if self_energy_use <= 80 else 'red'
         self.energy_canvas.coords(self.energy_bar, 1, 1, energy_width, 19)
         self.energy_canvas.itemconfig(self.energy_bar, fill=energy_color)
         self.energy_label.config(text=f"Energy: {self.energy_use:.1f}/{self.max_energy}")
