@@ -1,6 +1,7 @@
 import tkinter as tk
 from tkinter import ttk
 import random
+import math
 
 class ACGame:
     def __init__(self, root):
@@ -16,6 +17,7 @@ class ACGame:
         self.game_over = False
         self.game_started = False
         self.selected_house = 0
+        self.fan_angles = [0] * self.num_houses  # For fan rotation
 
         # GUI Setup
         self.house_controls = []
@@ -26,8 +28,8 @@ class ACGame:
         self.root.bind('<Right>', self.select_next_house)
         self.root.bind('<Up>', self.increase_temp)
         self.root.bind('<Down>', self.decrease_temp)
-        self.root.bind('s', self.start_game)  # 's' for Start Game
-        self.root.bind('r', self.reset_game)  # 'r' for Reset
+        self.root.bind('s', self.start_game)
+        self.root.bind('r', self.reset_game)
 
     def create_widgets(self):
         # Energy meter
@@ -71,6 +73,18 @@ class ACGame:
             temp_canvas.pack(pady=2)
             temp_bar = temp_canvas.create_rectangle(1, 1, 101, 19, fill='#FFA500')
 
+            # Fan canvas
+            fan_canvas = tk.Canvas(frame, width=50, height=50, bg='white')
+            fan_canvas.pack(pady=2)
+            center_x, center_y = 25, 25
+            fan_canvas.create_oval(center_x-20, center_y-20, center_x+20, center_y+20, outline='gray')
+            blades = [
+                fan_canvas.create_line(center_x, center_y, center_x+15, center_y, width=2),
+                fan_canvas.create_line(center_x, center_y, center_x, center_y+15, width=2),
+                fan_canvas.create_line(center_x, center_y, center_x-15, center_y, width=2),
+                fan_canvas.create_line(center_x, center_y, center_x, center_y-15, width=2)
+            ]
+
             temp_label = ttk.Label(frame, text="Temp: 77°F")
             comfort_label = ttk.Label(frame, text="Comfort: 65%")
             temp_label.pack(pady=2)
@@ -86,6 +100,8 @@ class ACGame:
                 'comfort_bar': comfort_bar,
                 'temp_canvas': temp_canvas,
                 'temp_bar': temp_bar,
+                'fan_canvas': fan_canvas,
+                'fan_blades': blades,
                 'temp_label': temp_label,
                 'comfort_label': comfort_label,
                 'sel_canvas': sel_canvas,
@@ -101,6 +117,7 @@ class ACGame:
         if not self.game_started:
             self.game_started = True
             self.update_game()
+            self.animate_fans()
 
     def select_previous_house(self, event):
         if not self.game_over:
@@ -164,6 +181,22 @@ class ACGame:
 
         return f'#{r:02x}{g:02x}{b:02x}'
 
+    def animate_fans(self):
+        if not self.game_started or self.game_over:
+            return
+        for i, house in enumerate(self.house_controls):
+            temp = self.thermostats[i]
+            # Speed: faster at lower temps (20 at 61°F, 5 at 82°F)
+            speed = int(20 - (temp - 61) * (15 / 21))  # Linear from 20 to 5
+            self.fan_angles[i] = (self.fan_angles[i] + speed) % 360
+            center_x, center_y = 25, 25
+            for j, blade in enumerate(house['fan_blades']):
+                angle = math.radians(self.fan_angles[i] + j * 90)
+                x = center_x + 15 * math.cos(angle)
+                y = center_y + 15 * math.sin(angle)
+                house['fan_canvas'].coords(blade, center_x, center_y, x, y)
+        self.root.after(50, self.animate_fans)  # Update every 50ms
+
     def update_game(self):
         if not self.game_started or self.game_over:
             return
@@ -225,6 +258,7 @@ class ACGame:
         self.game_over = False
         self.game_started = False
         self.selected_house = 0
+        self.fan_angles = [0] * self.num_houses
         for i in range(self.num_houses):
             self.thermostats[i] = 77
             self.comfort_levels[i] = 65
@@ -238,6 +272,13 @@ class ACGame:
                 self.house_controls[i]['temp_bar'], fill='#FFA500')
             self.house_controls[i]['comfort_label'].config(text="Comfort: 65%")
             self.house_controls[i]['temp_label'].config(text="Temp: 77°F")
+            # Reset fan blades to initial position
+            center_x, center_y = 25, 25
+            for j, blade in enumerate(self.house_controls[i]['fan_blades']):
+                angle = math.radians(j * 90)
+                x = center_x + 15 * math.cos(angle)
+                y = center_y + 15 * math.sin(angle)
+                self.house_controls[i]['fan_canvas'].coords(blade, center_x, center_y, x, y)
         self.energy_canvas.coords(self.energy_bar, 1, 1, 1, 19)
         self.energy_canvas.itemconfig(self.energy_bar, fill='green')
         self.energy_label.config(text="Energy: 0/100")
