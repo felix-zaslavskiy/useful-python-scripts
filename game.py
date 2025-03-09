@@ -56,29 +56,33 @@ class ACGame:
             frame = ttk.LabelFrame(self.houses_frame, text=f"House {i+1}")
             frame.pack(side=tk.LEFT, padx=5)
 
-            comfort = ttk.Progressbar(frame, length=100, maximum=100)
-            comfort.pack(pady=2)
+            # Individual comfort meter
+            comfort_canvas = tk.Canvas(frame, width=102, height=20,
+                                       bg='white', highlightthickness=1,
+                                       highlightbackground='black')
+            comfort_canvas.pack(pady=2)
+            comfort_bar = comfort_canvas.create_rectangle(1, 1, 51, 19, fill='yellow')  # 50% initially
 
             temp_label = ttk.Label(frame, text="Temp: 25°C")
             comfort_label = ttk.Label(frame, text="Comfort: 50%")
             temp_label.pack(pady=2)
             comfort_label.pack(pady=2)
 
-            # Canvas for selection rectangle
-            canvas = tk.Canvas(frame, width=100, height=20, bg='white', highlightthickness=0)
-            canvas.pack(pady=2)
-            rect = canvas.create_rectangle(2, 2, 98, 18, outline='blue', width=2) if i == 0 else None
+            # Selection rectangle
+            sel_canvas = tk.Canvas(frame, width=100, height=20, bg='white', highlightthickness=0)
+            sel_canvas.pack(pady=2)
+            rect = sel_canvas.create_rectangle(2, 2, 98, 18, outline='blue', width=2) if i == 0 else None
 
             self.house_controls.append({
                 'frame': frame,
-                'comfort': comfort,
+                'comfort_canvas': comfort_canvas,
+                'comfort_bar': comfort_bar,
                 'temp_label': temp_label,
                 'comfort_label': comfort_label,
-                'canvas': canvas,
-                'rect': rect  # Will be None for non-selected houses initially
+                'sel_canvas': sel_canvas,
+                'rect': rect
             })
 
-        # Initial selection
         self.update_house_selection()
 
         ttk.Button(self.root, text="Start Game", command=self.start_game).pack(pady=5)
@@ -116,14 +120,12 @@ class ACGame:
     def update_house_selection(self):
         for i, house in enumerate(self.house_controls):
             if i == self.selected_house:
-                # Create rectangle if it doesn't exist
                 if house['rect'] is None:
-                    house['rect'] = house['canvas'].create_rectangle(2, 2, 98, 18,
-                                                                     outline='blue', width=2)
+                    house['rect'] = house['sel_canvas'].create_rectangle(2, 2, 98, 18,
+                                                                         outline='blue', width=2)
             else:
-                # Remove rectangle if it exists
                 if house['rect'] is not None:
-                    house['canvas'].delete(house['rect'])
+                    house['sel_canvas'].delete(house['rect'])
                     house['rect'] = None
 
     def update_game(self):
@@ -137,7 +139,14 @@ class ACGame:
             self.comfort_levels[i] = comfort
             total_comfort += comfort
 
-            self.house_controls[i]['comfort'].config(value=comfort)
+            # Update individual comfort meter
+            comfort_width = (comfort / 100) * 100  # 100 is canvas width - 2
+            comfort_color = 'red' if comfort < 50 else 'yellow' if comfort < 80 else 'green'
+            self.house_controls[i]['comfort_canvas'].coords(
+                self.house_controls[i]['comfort_bar'], 1, 1, comfort_width, 19)
+            self.house_controls[i]['comfort_canvas'].itemconfig(
+                self.house_controls[i]['comfort_bar'], fill=comfort_color)
+
             self.house_controls[i]['comfort_label'].config(
                 text=f"Comfort: {comfort:.0f}%")
             self.house_controls[i]['temp_label'].config(
@@ -155,7 +164,7 @@ class ACGame:
         self.energy_canvas.itemconfig(self.energy_bar, fill=energy_color)
         self.energy_label.config(text=f"Energy: {self.energy_use:.1f}/{self.max_energy}")
 
-        # Update Comfort meter
+        # Update Overall Comfort meter
         comfort_width = (avg_comfort / 100) * 200
         comfort_color = 'red' if avg_comfort < 50 else 'yellow' if avg_comfort < 80 else 'green'
         self.comfort_canvas.coords(self.comfort_bar, 1, 1, comfort_width, 19)
@@ -179,7 +188,11 @@ class ACGame:
         self.selected_house = 0
         for i in range(self.num_houses):
             self.thermostats[i] = 25
-            self.house_controls[i]['comfort'].config(value=50)
+            self.comfort_levels[i] = 50
+            self.house_controls[i]['comfort_canvas'].coords(
+                self.house_controls[i]['comfort_bar'], 1, 1, 51, 19)
+            self.house_controls[i]['comfort_canvas'].itemconfig(
+                self.house_controls[i]['comfort_bar'], fill='yellow')
             self.house_controls[i]['comfort_label'].config(text="Comfort: 50%")
             self.house_controls[i]['temp_label'].config(text="Temp: 25°C")
         self.energy_canvas.coords(self.energy_bar, 1, 1, 1, 19)
