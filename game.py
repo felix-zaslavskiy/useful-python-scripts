@@ -21,11 +21,13 @@ class ACGame:
         self.house_controls = []
         self.create_widgets()
 
-        # Bind arrow keys
+        # Bind arrow keys and shortcuts
         self.root.bind('<Left>', self.select_previous_house)
         self.root.bind('<Right>', self.select_next_house)
         self.root.bind('<Up>', self.increase_temp)
         self.root.bind('<Down>', self.decrease_temp)
+        self.root.bind('s', self.start_game)  # 's' for Start Game
+        self.root.bind('r', self.reset_game)  # 'r' for Reset
 
     def create_widgets(self):
         # Energy meter
@@ -52,30 +54,28 @@ class ACGame:
         self.houses_frame = ttk.Frame(self.root)
         self.houses_frame.pack(padx=10, pady=10)
 
+        names = ["Zach", "Dad", "Mom"]
         for i in range(self.num_houses):
-            frame = ttk.LabelFrame(self.houses_frame, text=f"House {i+1}")
+            frame = ttk.LabelFrame(self.houses_frame, text=f"House {names[i]}")
             frame.pack(side=tk.LEFT, padx=5)
 
-            # Comfort meter
             comfort_canvas = tk.Canvas(frame, width=102, height=20,
                                        bg='white', highlightthickness=1,
                                        highlightbackground='black')
             comfort_canvas.pack(pady=2)
             comfort_bar = comfort_canvas.create_rectangle(1, 1, 66, 19, fill='yellow')
 
-            # Temperature indicator
             temp_canvas = tk.Canvas(frame, width=102, height=20,
                                     bg='white', highlightthickness=1,
                                     highlightbackground='black')
             temp_canvas.pack(pady=2)
-            temp_bar = temp_canvas.create_rectangle(1, 1, 101, 19, fill='#FFA500')  # Orange for 77°F
+            temp_bar = temp_canvas.create_rectangle(1, 1, 101, 19, fill='#FFA500')
 
             temp_label = ttk.Label(frame, text="Temp: 77°F")
             comfort_label = ttk.Label(frame, text="Comfort: 65%")
             temp_label.pack(pady=2)
             comfort_label.pack(pady=2)
 
-            # Selection rectangle
             sel_canvas = tk.Canvas(frame, width=100, height=20, bg='white', highlightthickness=0)
             sel_canvas.pack(pady=2)
             rect = sel_canvas.create_rectangle(2, 2, 98, 18, outline='blue', width=2) if i == 0 else None
@@ -94,10 +94,10 @@ class ACGame:
 
         self.update_house_selection()
 
-        ttk.Button(self.root, text="Start Game", command=self.start_game).pack(pady=5)
-        ttk.Button(self.root, text="Reset", command=self.reset_game).pack(pady=5)
+        ttk.Button(self.root, text="Start Game (S)", command=self.start_game).pack(pady=5)
+        ttk.Button(self.root, text="Reset (R)", command=self.reset_game).pack(pady=5)
 
-    def start_game(self):
+    def start_game(self, event=None):
         if not self.game_started:
             self.game_started = True
             self.update_game()
@@ -138,12 +138,10 @@ class ACGame:
                     house['rect'] = None
 
     def get_temp_color(self, temp):
-        # Linear interpolation from blue (61°F) to red (82°F)
         min_temp, max_temp = 61, 82
         ratio = (temp - min_temp) / (max_temp - min_temp)
-        ratio = max(0, min(1, ratio))  # Clamp between 0 and 1
+        ratio = max(0, min(1, ratio))
 
-        # Define color points: blue -> yellow -> orange -> red
         colors = [
             (0, 0, 255),    # Blue at 61°F
             (255, 255, 0),  # Yellow at ~68°F
@@ -151,15 +149,15 @@ class ACGame:
             (255, 0, 0)     # Red at 82°F
         ]
 
-        if ratio <= 0.33:  # Blue to Yellow
+        if ratio <= 0.33:
             r = int(colors[0][0] + (colors[1][0] - colors[0][0]) * (ratio / 0.33))
             g = int(colors[0][1] + (colors[1][1] - colors[0][1]) * (ratio / 0.33))
             b = int(colors[0][2] + (colors[1][2] - colors[0][2]) * (ratio / 0.33))
-        elif ratio <= 0.66:  # Yellow to Orange
+        elif ratio <= 0.66:
             r = int(colors[1][0] + (colors[2][0] - colors[1][0]) * ((ratio - 0.33) / 0.33))
             g = int(colors[1][1] + (colors[2][1] - colors[1][1]) * ((ratio - 0.33) / 0.33))
             b = int(colors[1][2] + (colors[2][2] - colors[1][2]) * ((ratio - 0.33) / 0.33))
-        else:  # Orange to Red
+        else:
             r = int(colors[2][0] + (colors[3][0] - colors[2][0]) * ((ratio - 0.66) / 0.34))
             g = int(colors[2][1] + (colors[3][1] - colors[2][1]) * ((ratio - 0.66) / 0.34))
             b = int(colors[2][2] + (colors[3][2] - colors[2][2]) * ((ratio - 0.66) / 0.34))
@@ -177,7 +175,6 @@ class ACGame:
             self.comfort_levels[i] = comfort
             total_comfort += comfort
 
-            # Update comfort meter
             comfort_width = (comfort / 100) * 100
             comfort_color = 'red' if comfort < 50 else 'yellow' if comfort < 80 else 'green'
             self.house_controls[i]['comfort_canvas'].coords(
@@ -185,10 +182,9 @@ class ACGame:
             self.house_controls[i]['comfort_canvas'].itemconfig(
                 self.house_controls[i]['comfort_bar'], fill=comfort_color)
 
-            # Update temperature indicator
             temp_color = self.get_temp_color(temp)
             self.house_controls[i]['temp_canvas'].coords(
-                self.house_controls[i]['temp_bar'], 1, 1, 101, 19)  # Full width
+                self.house_controls[i]['temp_bar'], 1, 1, 101, 19)
             self.house_controls[i]['temp_canvas'].itemconfig(
                 self.house_controls[i]['temp_bar'], fill=temp_color)
 
@@ -199,7 +195,6 @@ class ACGame:
 
         avg_comfort = total_comfort / self.num_houses
 
-        # Update Energy meter
         self.energy_use = sum(max(0, 79 - temp) * 2.5 for temp in self.thermostats)
         energy_width = (self.energy_use / self.max_energy) * 200
         if energy_width > 200:
@@ -209,7 +204,6 @@ class ACGame:
         self.energy_canvas.itemconfig(self.energy_bar, fill=energy_color)
         self.energy_label.config(text=f"Energy: {self.energy_use:.1f}/{self.max_energy}")
 
-        # Update Overall Comfort meter
         comfort_width = (avg_comfort / 100) * 200
         comfort_color = 'red' if avg_comfort < 50 else 'yellow' if avg_comfort < 80 else 'green'
         self.comfort_canvas.coords(self.comfort_bar, 1, 1, comfort_width, 19)
@@ -227,7 +221,7 @@ class ACGame:
         ttk.Label(popup, text=message).pack(padx=20, pady=20)
         ttk.Button(popup, text="OK", command=lambda: [popup.destroy()]).pack(pady=10)
 
-    def reset_game(self):
+    def reset_game(self, event=None):
         self.game_over = False
         self.game_started = False
         self.selected_house = 0
@@ -241,7 +235,7 @@ class ACGame:
             self.house_controls[i]['temp_canvas'].coords(
                 self.house_controls[i]['temp_bar'], 1, 1, 101, 19)
             self.house_controls[i]['temp_canvas'].itemconfig(
-                self.house_controls[i]['temp_bar'], fill='#FFA500')  # Orange
+                self.house_controls[i]['temp_bar'], fill='#FFA500')
             self.house_controls[i]['comfort_label'].config(text="Comfort: 65%")
             self.house_controls[i]['temp_label'].config(text="Temp: 77°F")
         self.energy_canvas.coords(self.energy_bar, 1, 1, 1, 19)
