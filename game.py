@@ -63,18 +63,30 @@ class ACGame:
             frame = ttk.LabelFrame(self.houses_frame, text=f"House {names[i]}")
             frame.pack(side=tk.LEFT, padx=5)
 
+            # Comfort bar first
             comfort_canvas = tk.Canvas(frame, width=102, height=20,
                                        bg='white', highlightthickness=1,
                                        highlightbackground='black')
             comfort_canvas.pack(pady=2)
             comfort_bar = comfort_canvas.create_rectangle(1, 1, 66, 19, fill='yellow')
 
+            # Comfort % below comfort bar
+            comfort_label = ttk.Label(frame, text="Comfort: 65%")
+            comfort_label.pack(pady=2)
+
+            # SSD temperature display
+            ssd_canvas = tk.Canvas(frame, width=60, height=35, bg='black')
+            ssd_canvas.pack(pady=2)
+            ssd_segments = self.create_ssd(ssd_canvas, 77)
+
+            # Temperature color bar below SSD
             temp_canvas = tk.Canvas(frame, width=102, height=20,
                                     bg='white', highlightthickness=1,
                                     highlightbackground='black')
             temp_canvas.pack(pady=2)
             temp_bar = temp_canvas.create_rectangle(1, 1, 101, 19, fill='#FFA500')
 
+            # Fan below temperature color
             fan_canvas = tk.Canvas(frame, width=50, height=50, bg='white')
             fan_canvas.pack(pady=2)
             center_x, center_y = 25, 25
@@ -86,13 +98,7 @@ class ACGame:
                 fan_canvas.create_line(center_x, center_y, center_x, center_y-15, width=2)
             ]
 
-            ssd_canvas = tk.Canvas(frame, width=60, height=35, bg='black')
-            ssd_canvas.pack(pady=2)
-            ssd_segments = self.create_ssd(ssd_canvas, 77)
-
-            comfort_label = ttk.Label(frame, text="Comfort: 65%")
-            comfort_label.pack(pady=2)
-
+            # Selection rectangle at bottom
             sel_canvas = tk.Canvas(frame, width=100, height=20, bg='white', highlightthickness=0)
             sel_canvas.pack(pady=2)
             rect = sel_canvas.create_rectangle(2, 2, 98, 18, outline='blue', width=2) if i == 0 else None
@@ -294,7 +300,7 @@ class ACGame:
         energy_width = (self.energy_use / self.max_energy) * 200
         if energy_width > 200:
             energy_width = 200
-        energy_color = 'green' if self.energy_use <= 50 else 'yellow' if self.energy_use <= 80 else 'red'  # Fixed typo
+        energy_color = 'green' if self.energy_use <= 50 else 'yellow' if self.energy_use <= 80 else 'red'
         self.energy_canvas.coords(self.energy_bar, 1, 1, energy_width, 19)
         self.energy_canvas.itemconfig(self.energy_bar, fill=energy_color)
         self.energy_label.config(text=f"Energy: {self.energy_use:.1f}/{self.max_energy}")
