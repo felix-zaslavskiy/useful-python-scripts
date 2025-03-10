@@ -100,10 +100,23 @@ class ACGame:
             # Energy meter for each house
             energy_frame = ttk.Frame(frame)
             energy_frame.pack(pady=2)
-            # Lightning bolt icon (simple approximation with lines)
-            bolt_canvas = tk.Canvas(energy_frame, width=20, height=20, bg='white', highlightthickness=0)
+            # Lightning bolt icon with 6 lines (corrected)
+            bolt_canvas = tk.Canvas(energy_frame, width=30, height=30, bg='white', highlightthickness=0)
             bolt_canvas.pack(side=tk.LEFT)
-            bolt_canvas.create_line(5, 15, 10, 5, 15, 15, 10, 5, fill='black', width=2)
+
+            # Adjusted points for a 30x30 lightning bolt
+            bolt_points = [
+                15, 0,   # Top point
+                7, 12,   # Left point after first zig (moved further left)
+                13, 15,  # Middle point
+                5, 30,   # Bottom point (moved further left)
+                20, 14,  # Right point before last zag (moved further right)
+                10, 12   # Point to complete the bolt
+            ]
+
+            # Draw the lightning bolt
+            bolt_canvas.create_polygon(bolt_points, fill='yellow', outline='black')
+
             # Energy bar
             house_energy_canvas = tk.Canvas(energy_frame, width=82, height=20,
                                             bg='white', highlightthickness=1,
@@ -271,7 +284,7 @@ class ACGame:
             return
 
         total_comfort = 0
-        house_energy_values = []  # Store individual energy values
+        house_energy_values = []
         for i in range(self.num_houses):
             temp = self.thermostats[i]
             comfort = max(0, 100 - abs(temp - 72) * 5)
@@ -303,10 +316,11 @@ class ACGame:
             # Calculate and update house energy meter
             house_energy = max(0, 79 - temp) * 2.5
             house_energy_values.append(house_energy)
-            house_energy_width = (house_energy / self.max_energy) * 80  # 80 is canvas width - 2
+            # Scale to use full bar (80 pixels) for max individual energy (~45)
+            house_energy_width = (house_energy / 45) * 80  # 45 is max per house (79-61)*2.5
             if house_energy_width > 80:
                 house_energy_width = 80
-            house_energy_color = 'green' if house_energy <= 50 else 'yellow' if house_energy <= 80 else 'red'
+            house_energy_color = 'green' if house_energy_width <= 25 else 'yellow' if house_energy_width <= 50 else 'red'
             self.house_controls[i]['house_energy_canvas'].coords(
                 self.house_controls[i]['house_energy_bar'], 1, 1, house_energy_width, 19)
             self.house_controls[i]['house_energy_canvas'].itemconfig(
@@ -314,7 +328,7 @@ class ACGame:
 
         avg_comfort = total_comfort / self.num_houses
 
-        self.energy_use = sum(house_energy_values)  # Total energy from individual houses
+        self.energy_use = sum(house_energy_values)
         energy_width = (self.energy_use / self.max_energy) * 200
         if energy_width > 200:
             energy_width = 200
