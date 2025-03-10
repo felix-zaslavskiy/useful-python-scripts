@@ -32,7 +32,7 @@ class ACGame:
         self.root.bind('r', self.reset_game)
 
     def create_widgets(self):
-        # Energy meter
+        # Energy meter (overall)
         self.energy_frame = ttk.LabelFrame(self.root, text="Energy Meter")
         self.energy_frame.pack(padx=10, pady=5)
         self.energy_canvas = tk.Canvas(self.energy_frame, width=202, height=20,
@@ -51,7 +51,7 @@ class ACGame:
                                         highlightbackground='black')
         self.comfort_canvas.pack()
         self.comfort_bar = self.comfort_canvas.create_rectangle(1, 1, 130, 19, fill='yellow')
-        self.comfort_percent_label = ttk.Label(self.overall_comfort_frame, text="65/100%")  # Changed to 65/100%
+        self.comfort_percent_label = ttk.Label(self.overall_comfort_frame, text="65/100%")
         self.comfort_percent_label.pack()
 
         # House controls
@@ -60,12 +60,11 @@ class ACGame:
 
         names = ["Zach", "Dad", "Mom"]
         for i in range(self.num_houses):
-            # Use Label instead of LabelFrame for larger, centered text
             frame = ttk.Frame(self.houses_frame)
             frame.pack(side=tk.LEFT, padx=5)
             name_label = ttk.Label(frame, text=names[i], font=("Arial", 14), anchor="center")
             name_label.pack(fill="x")
-            if i == 0:  # Bold the first house initially
+            if i == 0:
                 name_label.config(font=("Arial", 14, "bold"))
 
             comfort_canvas = tk.Canvas(frame, width=102, height=20,
@@ -98,9 +97,23 @@ class ACGame:
                 fan_canvas.create_line(center_x, center_y, center_x, center_y-15, width=2)
             ]
 
+            # Energy meter for each house
+            energy_frame = ttk.Frame(frame)
+            energy_frame.pack(pady=2)
+            # Lightning bolt icon (simple approximation with lines)
+            bolt_canvas = tk.Canvas(energy_frame, width=20, height=20, bg='white', highlightthickness=0)
+            bolt_canvas.pack(side=tk.LEFT)
+            bolt_canvas.create_line(5, 15, 10, 5, 15, 15, 10, 5, fill='black', width=2)
+            # Energy bar
+            house_energy_canvas = tk.Canvas(energy_frame, width=82, height=20,
+                                            bg='white', highlightthickness=1,
+                                            highlightbackground='black')
+            house_energy_canvas.pack(side=tk.LEFT)
+            house_energy_bar = house_energy_canvas.create_rectangle(1, 1, 1, 19, fill='green')
+
             self.house_controls.append({
                 'frame': frame,
-                'name_label': name_label,  # Added for selection highlighting
+                'name_label': name_label,
                 'comfort_canvas': comfort_canvas,
                 'comfort_bar': comfort_bar,
                 'temp_canvas': temp_canvas,
@@ -110,6 +123,8 @@ class ACGame:
                 'ssd_canvas': ssd_canvas,
                 'ssd_segments': ssd_segments,
                 'comfort_label': comfort_label,
+                'house_energy_canvas': house_energy_canvas,
+                'house_energy_bar': house_energy_bar
             })
 
         self.update_house_selection()
@@ -205,9 +220,9 @@ class ACGame:
     def update_house_selection(self):
         for i, house in enumerate(self.house_controls):
             if i == self.selected_house:
-                house['name_label'].config(font=("Arial", 14, "bold"))  # Bold for selected
+                house['name_label'].config(font=("Arial", 14, "bold"))
             else:
-                house['name_label'].config(font=("Arial", 14))  # Normal for unselected
+                house['name_label'].config(font=("Arial", 14))
 
     def get_temp_color(self, temp):
         min_temp, max_temp = 61, 82
@@ -256,6 +271,7 @@ class ACGame:
             return
 
         total_comfort = 0
+        house_energy_values = []  # Store individual energy values
         for i in range(self.num_houses):
             temp = self.thermostats[i]
             comfort = max(0, 100 - abs(temp - 72) * 5)
@@ -284,9 +300,21 @@ class ACGame:
             self.house_controls[i]['comfort_label'].config(
                 text=f"Comfort: {comfort:.0f}%")
 
+            # Calculate and update house energy meter
+            house_energy = max(0, 79 - temp) * 2.5
+            house_energy_values.append(house_energy)
+            house_energy_width = (house_energy / self.max_energy) * 80  # 80 is canvas width - 2
+            if house_energy_width > 80:
+                house_energy_width = 80
+            house_energy_color = 'green' if house_energy <= 50 else 'yellow' if house_energy <= 80 else 'red'
+            self.house_controls[i]['house_energy_canvas'].coords(
+                self.house_controls[i]['house_energy_bar'], 1, 1, house_energy_width, 19)
+            self.house_controls[i]['house_energy_canvas'].itemconfig(
+                self.house_controls[i]['house_energy_bar'], fill=house_energy_color)
+
         avg_comfort = total_comfort / self.num_houses
 
-        self.energy_use = sum(max(0, 79 - temp) * 2.5 for temp in self.thermostats)
+        self.energy_use = sum(house_energy_values)  # Total energy from individual houses
         energy_width = (self.energy_use / self.max_energy) * 200
         if energy_width > 200:
             energy_width = 200
@@ -299,7 +327,7 @@ class ACGame:
         comfort_color = 'red' if avg_comfort < 50 else 'yellow' if avg_comfort < 80 else 'green'
         self.comfort_canvas.coords(self.comfort_bar, 1, 1, comfort_width, 19)
         self.comfort_canvas.itemconfig(self.comfort_bar, fill=comfort_color)
-        self.comfort_percent_label.config(text=f"{avg_comfort:.0f}/100%")  # Changed to X/100%
+        self.comfort_percent_label.config(text=f"{avg_comfort:.0f}/100%")
 
         if self.energy_use > self.max_energy:
             self.show_message("Game Over", "Energy usage exceeded maximum!")
@@ -335,6 +363,10 @@ class ACGame:
                 77
             )
             self.house_controls[i]['comfort_label'].config(text="Comfort: 65%")
+            self.house_controls[i]['house_energy_canvas'].coords(
+                self.house_controls[i]['house_energy_bar'], 1, 1, 1, 19)
+            self.house_controls[i]['house_energy_canvas'].itemconfig(
+                self.house_controls[i]['house_energy_bar'], fill='green')
             center_x, center_y = 25, 25
             for j, blade in enumerate(self.house_controls[i]['fan_blades']):
                 angle = math.radians(j * 90)
@@ -346,7 +378,7 @@ class ACGame:
         self.energy_label.config(text="Energy: 0/100")
         self.comfort_canvas.coords(self.comfort_bar, 1, 1, 130, 19)
         self.comfort_canvas.itemconfig(self.comfort_bar, fill='yellow')
-        self.comfort_percent_label.config(text="65/100%")  # Changed to 65/100%
+        self.comfort_percent_label.config(text="65/100%")
         self.update_house_selection()
 
 def main():
