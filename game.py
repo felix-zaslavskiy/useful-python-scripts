@@ -356,7 +356,7 @@ class ACGame:
         self.energy_label.config(text="Energy: 0/100")
         self.comfort_canvas.coords(self.comfort_bar, 1, 1, 130, 19)
         self.comfort_canvas.itemconfig(self.comfort_bar, fill='yellow')
-        self.comfort_percent_label.config(text="65%/100%")
+        self.comfort_percent_label.config(text="65/100%")
         self.update_house_selection()
 
 def main():
