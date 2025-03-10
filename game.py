@@ -1,6 +1,5 @@
 import tkinter as tk
 from tkinter import ttk
-import random
 import math
 
 class ACGame:
@@ -12,6 +11,7 @@ class ACGame:
         self.num_houses = 3
         self.thermostats = [77] * self.num_houses
         self.comfort_levels = [65] * self.num_houses
+        self.ac_on = [True] * self.num_houses  # New flag to track AC status
         self.energy_use = 0
         self.max_energy = 100
         self.game_over = False
@@ -32,6 +32,7 @@ class ACGame:
         self.root.bind('r', self.reset_game)
 
     def create_widgets(self):
+        # [Existing create_widgets code remains largely unchanged]
         # Energy meter (overall)
         self.energy_frame = ttk.LabelFrame(self.root, text="Energy Meter")
         self.energy_frame.pack(padx=10, pady=5)
@@ -97,10 +98,8 @@ class ACGame:
                 fan_canvas.create_line(center_x, center_y, center_x, center_y-15, width=2)
             ]
 
-            # Energy meter for each house
             energy_frame = ttk.Frame(frame)
             energy_frame.pack(pady=2)
-            # Lightning bolt icon with 6 lines (corrected)
             bolt_canvas = tk.Canvas(energy_frame, width=30, height=30, bg='white', highlightthickness=0)
             bolt_canvas.pack(side=tk.LEFT)
 
@@ -221,6 +220,8 @@ class ACGame:
             temp = self.thermostats[self.selected_house]
             if temp < 82:
                 self.thermostats[self.selected_house] = min(82, temp + 1)
+                # Toggle AC status
+                self.ac_on[self.selected_house] = self.thermostats[self.selected_house] < 79
                 self.update_game()
 
     def decrease_temp(self, event):
@@ -228,6 +229,8 @@ class ACGame:
             temp = self.thermostats[self.selected_house]
             if temp > 61:
                 self.thermostats[self.selected_house] = max(61, temp - 1)
+                # Toggle AC status
+                self.ac_on[self.selected_house] = self.thermostats[self.selected_house] < 79
                 self.update_game()
 
     def update_house_selection(self):
@@ -268,15 +271,24 @@ class ACGame:
         if not self.game_started or self.game_over:
             return
         for i, house in enumerate(self.house_controls):
-            temp = self.thermostats[i]
-            speed = int(30 - (temp - 61) * (25 / 21))
-            self.fan_angles[i] = (self.fan_angles[i] + speed) % 360
-            center_x, center_y = 25, 25
-            for j, blade in enumerate(house['fan_blades']):
-                angle = math.radians(self.fan_angles[i] + j * 90)
-                x = center_x + 15 * math.cos(angle)
-                y = center_y + 15 * math.sin(angle)
-                house['fan_canvas'].coords(blade, center_x, center_y, x, y)
+            if self.ac_on[i]:  # Only animate if AC is on
+                temp = self.thermostats[i]
+                speed = int(30 - (temp - 61) * (25 / 21))
+                self.fan_angles[i] = (self.fan_angles[i] + speed) % 360
+                center_x, center_y = 25, 25
+                for j, blade in enumerate(house['fan_blades']):
+                    angle = math.radians(self.fan_angles[i] + j * 90)
+                    x = center_x + 15 * math.cos(angle)
+                    y = center_y + 15 * math.sin(angle)
+                    house['fan_canvas'].coords(blade, center_x, center_y, x, y)
+            else:
+                # Reset fan blades to default position when AC is off
+                center_x, center_y = 25, 25
+                for j, blade in enumerate(house['fan_blades']):
+                    angle = math.radians(j * 90)
+                    x = center_x + 15 * math.cos(angle)
+                    y = center_y + 15 * math.sin(angle)
+                    house['fan_canvas'].coords(blade, center_x, center_y, x, y)
         self.root.after(50, self.animate_fans)
 
     def update_game(self):
@@ -314,7 +326,7 @@ class ACGame:
                 text=f"Comfort: {comfort:.0f}%")
 
             # Calculate and update house energy meter
-            house_energy = max(0, 79 - temp) * 2.5
+            house_energy = (max(0, 79 - temp) * 2.5) if self.ac_on[i] else 0  # Zero energy if AC is off
             house_energy_values.append(house_energy)
             # Scale to use full bar (80 pixels) for max individual energy (~45)
             house_energy_width = (house_energy / 45) * 80  # 45 is max per house (79-61)*2.5
@@ -360,6 +372,7 @@ class ACGame:
         self.game_started = False
         self.selected_house = 0
         self.fan_angles = [0] * self.num_houses
+        self.ac_on = [True] * self.num_houses  # Reset AC status
         for i in range(self.num_houses):
             self.thermostats[i] = 77
             self.comfort_levels[i] = 65
