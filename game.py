@@ -303,7 +303,7 @@ class ACGame:
         comfort_color = 'red' if avg_comfort < 50 else 'yellow' if avg_comfort < 80 else 'green'
         self.comfort_canvas.coords(self.comfort_bar, 1, 1, comfort_width, 19)
         self.comfort_canvas.itemconfig(self.comfort_bar, fill=comfort_color)
-        self.comfort_percent_label.config(text=f"{avg_comfort:.0f}%/100%")
+        self.comfort_percent_label.config(text=f"{avg_comfort:.0f}/100%")
 
         if self.energy_use > self.max_energy:
             self.show_message("Game Over", "Energy usage exceeded maximum!")
