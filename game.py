@@ -51,7 +51,7 @@ class ACGame:
                                         highlightbackground='black')
         self.comfort_canvas.pack()
         self.comfort_bar = self.comfort_canvas.create_rectangle(1, 1, 130, 19, fill='yellow')
-        self.comfort_percent_label = ttk.Label(self.overall_comfort_frame, text="65%/100%")
+        self.comfort_percent_label = ttk.Label(self.overall_comfort_frame, text="65/100%")  # Changed to 65/100%
         self.comfort_percent_label.pack()
 
         # House controls
@@ -60,33 +60,33 @@ class ACGame:
 
         names = ["Zach", "Dad", "Mom"]
         for i in range(self.num_houses):
-            frame = ttk.LabelFrame(self.houses_frame, text=f"House {names[i]}")
+            # Use Label instead of LabelFrame for larger, centered text
+            frame = ttk.Frame(self.houses_frame)
             frame.pack(side=tk.LEFT, padx=5)
+            name_label = ttk.Label(frame, text=names[i], font=("Arial", 14), anchor="center")
+            name_label.pack(fill="x")
+            if i == 0:  # Bold the first house initially
+                name_label.config(font=("Arial", 14, "bold"))
 
-            # Comfort bar first
             comfort_canvas = tk.Canvas(frame, width=102, height=20,
                                        bg='white', highlightthickness=1,
                                        highlightbackground='black')
             comfort_canvas.pack(pady=2)
             comfort_bar = comfort_canvas.create_rectangle(1, 1, 66, 19, fill='yellow')
 
-            # Comfort % below comfort bar
             comfort_label = ttk.Label(frame, text="Comfort: 65%")
             comfort_label.pack(pady=2)
 
-            # SSD temperature display
             ssd_canvas = tk.Canvas(frame, width=60, height=35, bg='black')
             ssd_canvas.pack(pady=2)
             ssd_segments = self.create_ssd(ssd_canvas, 77)
 
-            # Temperature color bar below SSD
             temp_canvas = tk.Canvas(frame, width=102, height=20,
                                     bg='white', highlightthickness=1,
                                     highlightbackground='black')
             temp_canvas.pack(pady=2)
             temp_bar = temp_canvas.create_rectangle(1, 1, 101, 19, fill='#FFA500')
 
-            # Fan below temperature color
             fan_canvas = tk.Canvas(frame, width=50, height=50, bg='white')
             fan_canvas.pack(pady=2)
             center_x, center_y = 25, 25
@@ -98,13 +98,9 @@ class ACGame:
                 fan_canvas.create_line(center_x, center_y, center_x, center_y-15, width=2)
             ]
 
-            # Selection rectangle at bottom
-            sel_canvas = tk.Canvas(frame, width=100, height=20, bg='white', highlightthickness=0)
-            sel_canvas.pack(pady=2)
-            rect = sel_canvas.create_rectangle(2, 2, 98, 18, outline='blue', width=2) if i == 0 else None
-
             self.house_controls.append({
                 'frame': frame,
+                'name_label': name_label,  # Added for selection highlighting
                 'comfort_canvas': comfort_canvas,
                 'comfort_bar': comfort_bar,
                 'temp_canvas': temp_canvas,
@@ -114,8 +110,6 @@ class ACGame:
                 'ssd_canvas': ssd_canvas,
                 'ssd_segments': ssd_segments,
                 'comfort_label': comfort_label,
-                'sel_canvas': sel_canvas,
-                'rect': rect
             })
 
         self.update_house_selection()
@@ -211,13 +205,9 @@ class ACGame:
     def update_house_selection(self):
         for i, house in enumerate(self.house_controls):
             if i == self.selected_house:
-                if house['rect'] is None:
-                    house['rect'] = house['sel_canvas'].create_rectangle(2, 2, 98, 18,
-                                                                         outline='blue', width=2)
+                house['name_label'].config(font=("Arial", 14, "bold"))  # Bold for selected
             else:
-                if house['rect'] is not None:
-                    house['sel_canvas'].delete(house['rect'])
-                    house['rect'] = None
+                house['name_label'].config(font=("Arial", 14))  # Normal for unselected
 
     def get_temp_color(self, temp):
         min_temp, max_temp = 61, 82
@@ -309,7 +299,7 @@ class ACGame:
         comfort_color = 'red' if avg_comfort < 50 else 'yellow' if avg_comfort < 80 else 'green'
         self.comfort_canvas.coords(self.comfort_bar, 1, 1, comfort_width, 19)
         self.comfort_canvas.itemconfig(self.comfort_bar, fill=comfort_color)
-        self.comfort_percent_label.config(text=f"{avg_comfort:.0f}/100%")
+        self.comfort_percent_label.config(text=f"{avg_comfort:.0f}/100%")  # Changed to X/100%
 
         if self.energy_use > self.max_energy:
             self.show_message("Game Over", "Energy usage exceeded maximum!")
@@ -356,7 +346,7 @@ class ACGame:
         self.energy_label.config(text="Energy: 0/100")
         self.comfort_canvas.coords(self.comfort_bar, 1, 1, 130, 19)
         self.comfort_canvas.itemconfig(self.comfort_bar, fill='yellow')
-        self.comfort_percent_label.config(text="65/100%")
+        self.comfort_percent_label.config(text="65/100%")  # Changed to 65/100%
         self.update_house_selection()
 
 def main():
