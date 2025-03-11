@@ -13,7 +13,7 @@ class ACGame:
 
         self.num_houses = 3
         self.thermostats = [77] * self.num_houses
-        self.house_temps = [77] * self.num_houses  # New: Actual house temperatures
+        self.house_temps = [77] * self.num_houses
         self.comfort_levels = [65] * self.num_houses
         self.ac_on = [True] * self.num_houses
         self.energy_use = 0
@@ -101,6 +101,8 @@ class ACGame:
                                     highlightbackground='black')
             temp_canvas.pack(pady=2)
             temp_bar = temp_canvas.create_rectangle(1, 1, 101, 19, fill='#FFA500')
+            # Add text on top of temp_bar, centered
+            temp_text = temp_canvas.create_text(51, 10, text="77°F", font=("Arial", 10), fill='black')
 
             fan_canvas = tk.Canvas(frame, width=50, height=50, bg='white')
             fan_canvas.pack(pady=2)
@@ -136,6 +138,7 @@ class ACGame:
                 'comfort_bar': comfort_bar,
                 'temp_canvas': temp_canvas,
                 'temp_bar': temp_bar,
+                'temp_text': temp_text,  # Store the text ID
                 'fan_canvas': fan_canvas,
                 'fan_blades': blades,
                 'ssd_canvas': ssd_canvas,
@@ -326,24 +329,19 @@ class ACGame:
         house_energy_values = []
         for i in range(self.num_houses):
             thermostat = self.thermostats[i]
-            # Update AC status based on outside temperature
             self.ac_on[i] = self.outside_temp > thermostat
 
-            # Update house temperature
             if self.ac_on[i]:
-                # If AC is on, house temp moves toward thermostat
                 if self.house_temps[i] > thermostat:
                     self.house_temps[i] = max(thermostat, self.house_temps[i] - 1)
                 elif self.house_temps[i] < thermostat:
                     self.house_temps[i] = min(thermostat, self.house_temps[i] + 1)
             else:
-                # If AC is off, house temp moves toward outside temp
                 if self.house_temps[i] < self.outside_temp:
                     self.house_temps[i] = min(self.outside_temp, self.house_temps[i] + 1)
                 elif self.house_temps[i] > self.outside_temp:
                     self.house_temps[i] = max(self.outside_temp, self.house_temps[i] - 1)
 
-            # Use house temperature for comfort and display
             house_temp = self.house_temps[i]
             comfort = max(0, 100 - abs(house_temp - 72) * 5)
             self.comfort_levels[i] = comfort
@@ -356,17 +354,19 @@ class ACGame:
             self.house_controls[i]['comfort_canvas'].itemconfig(
                 self.house_controls[i]['comfort_bar'], fill=comfort_color)
 
-            # Link temp_bar color to house temperature, not thermostat
             temp_color = self.get_temp_color(house_temp)
             self.house_controls[i]['temp_canvas'].coords(
                 self.house_controls[i]['temp_bar'], 1, 1, 101, 19)
             self.house_controls[i]['temp_canvas'].itemconfig(
                 self.house_controls[i]['temp_bar'], fill=temp_color)
+            # Update the text on the temp_bar
+            self.house_controls[i]['temp_canvas'].itemconfig(
+                self.house_controls[i]['temp_text'], text=f"{house_temp}°F")
 
             self.house_controls[i]['ssd_segments'] = self.update_ssd(
                 self.house_controls[i]['ssd_canvas'],
                 self.house_controls[i]['ssd_segments'],
-                thermostat  # SSD still shows thermostat setting
+                thermostat
             )
 
             self.house_controls[i]['comfort_label'].config(
@@ -422,7 +422,7 @@ class ACGame:
         self.outside_temp_label.config(text=f"{self.outside_temp}°F")
         for i in range(self.num_houses):
             self.thermostats[i] = 77
-            self.house_temps[i] = 77  # Reset house temp to match thermostat
+            self.house_temps[i] = 77
             self.comfort_levels[i] = 65
             self.house_controls[i]['comfort_canvas'].coords(
                 self.house_controls[i]['comfort_bar'], 1, 1, 66, 19)
@@ -432,6 +432,8 @@ class ACGame:
                 self.house_controls[i]['temp_bar'], 1, 1, 101, 19)
             self.house_controls[i]['temp_canvas'].itemconfig(
                 self.house_controls[i]['temp_bar'], fill='#FFA500')
+            self.house_controls[i]['temp_canvas'].itemconfig(
+                self.house_controls[i]['temp_text'], text="77°F")  # Reset temp text
             self.house_controls[i]['ssd_segments'] = self.update_ssd(
                 self.house_controls[i]['ssd_canvas'],
                 self.house_controls[i]['ssd_segments'],
