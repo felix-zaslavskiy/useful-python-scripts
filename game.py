@@ -13,6 +13,7 @@ class ACGame:
 
         self.num_houses = 3
         self.thermostats = [77] * self.num_houses
+        self.house_temps = [77] * self.num_houses  # New: Actual house temperatures
         self.comfort_levels = [65] * self.num_houses
         self.ac_on = [True] * self.num_houses
         self.energy_use = 0
@@ -21,7 +22,7 @@ class ACGame:
         self.game_started = False
         self.selected_house = 0
         self.fan_angles = [0] * self.num_houses
-        self.outside_temp = 75  # Starting outside temperature
+        self.outside_temp = 75
 
         self.fan_sound = pygame.mixer.Sound("fan_hum.mp3")
         self.fan_sound.set_volume(0.5)
@@ -38,7 +39,6 @@ class ACGame:
         self.root.bind('r', self.reset_game)
 
     def create_widgets(self):
-        # Outside Temperature Display
         self.outside_temp_frame = ttk.LabelFrame(self.root, text="Outside Temperature")
         self.outside_temp_frame.pack(padx=10, pady=5)
         self.outside_temp_label = ttk.Label(self.outside_temp_frame, text=f"{self.outside_temp}°F", font=("Arial", 24))
@@ -154,21 +154,18 @@ class ACGame:
 
     def update_outside_temp(self):
         if self.game_started and not self.game_over:
-            # Random walk: +1, 0, or -1
             change = random.choice([-1, 0, 1])
             new_temp = self.outside_temp + change
-            # Bound between 70 and 80
             self.outside_temp = max(70, min(80, new_temp))
             self.outside_temp_label.config(text=f"{self.outside_temp}°F")
-            # Schedule next update
-            self.root.after(5000, self.update_outside_temp)  # Every 5 seconds
+            self.root.after(5000, self.update_outside_temp)
 
     def start_game(self, event=None):
         if not self.game_started:
             self.game_started = True
             self.update_game()
             self.animate_fans()
-            self.update_outside_temp()  # Start the outside temp updates
+            self.update_outside_temp()
 
     def update_house_selection(self):
         for i, house in enumerate(self.house_controls):
@@ -328,11 +325,27 @@ class ACGame:
         total_comfort = 0
         house_energy_values = []
         for i in range(self.num_houses):
-            temp = self.thermostats[i]
+            thermostat = self.thermostats[i]
             # Update AC status based on outside temperature
-            self.ac_on[i] = self.outside_temp > temp  # AC on if outside temp > thermostat
+            self.ac_on[i] = self.outside_temp > thermostat
 
-            comfort = max(0, 100 - abs(temp - 72) * 5)
+            # Update house temperature
+            if self.ac_on[i]:
+                # If AC is on, house temp moves toward thermostat
+                if self.house_temps[i] > thermostat:
+                    self.house_temps[i] = max(thermostat, self.house_temps[i] - 1)
+                elif self.house_temps[i] < thermostat:
+                    self.house_temps[i] = min(thermostat, self.house_temps[i] + 1)
+            else:
+                # If AC is off, house temp moves toward outside temp
+                if self.house_temps[i] < self.outside_temp:
+                    self.house_temps[i] = min(self.outside_temp, self.house_temps[i] + 1)
+                elif self.house_temps[i] > self.outside_temp:
+                    self.house_temps[i] = max(self.outside_temp, self.house_temps[i] - 1)
+
+            # Use house temperature for comfort and display
+            house_temp = self.house_temps[i]
+            comfort = max(0, 100 - abs(house_temp - 72) * 5)
             self.comfort_levels[i] = comfort
             total_comfort += comfort
 
@@ -343,7 +356,8 @@ class ACGame:
             self.house_controls[i]['comfort_canvas'].itemconfig(
                 self.house_controls[i]['comfort_bar'], fill=comfort_color)
 
-            temp_color = self.get_temp_color(temp)
+            # Link temp_bar color to house temperature, not thermostat
+            temp_color = self.get_temp_color(house_temp)
             self.house_controls[i]['temp_canvas'].coords(
                 self.house_controls[i]['temp_bar'], 1, 1, 101, 19)
             self.house_controls[i]['temp_canvas'].itemconfig(
@@ -352,13 +366,13 @@ class ACGame:
             self.house_controls[i]['ssd_segments'] = self.update_ssd(
                 self.house_controls[i]['ssd_canvas'],
                 self.house_controls[i]['ssd_segments'],
-                temp
+                thermostat  # SSD still shows thermostat setting
             )
 
             self.house_controls[i]['comfort_label'].config(
                 text=f"Comfort: {comfort:.0f}%")
 
-            house_energy = (max(0, self.outside_temp - temp) * 2.5) if self.ac_on[i] else 0  # Energy based on outside temp
+            house_energy = (max(0, self.outside_temp - thermostat) * 2.5) if self.ac_on[i] else 0
             house_energy_values.append(house_energy)
             house_energy_width = (house_energy / 45) * 80
             if house_energy_width > 80:
@@ -404,10 +418,11 @@ class ACGame:
         self.selected_house = 0
         self.fan_angles = [0] * self.num_houses
         self.ac_on = [True] * self.num_houses
-        self.outside_temp = 75  # Reset outside temp to 75°F
+        self.outside_temp = 75
         self.outside_temp_label.config(text=f"{self.outside_temp}°F")
         for i in range(self.num_houses):
             self.thermostats[i] = 77
+            self.house_temps[i] = 77  # Reset house temp to match thermostat
             self.comfort_levels[i] = 65
             self.house_controls[i]['comfort_canvas'].coords(
                 self.house_controls[i]['comfort_bar'], 1, 1, 66, 19)
