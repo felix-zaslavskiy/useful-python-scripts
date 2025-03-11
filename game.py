@@ -1,23 +1,33 @@
 import tkinter as tk
 from tkinter import ttk
 import math
+import pygame  # Import pygame for sound
 
 class ACGame:
     def __init__(self, root):
         self.root = root
         self.root.title("AC Management Game")
 
+        # Initialize pygame mixer for sound
+        pygame.mixer.init()
+
+
         # Game variables
         self.num_houses = 3
         self.thermostats = [77] * self.num_houses
         self.comfort_levels = [65] * self.num_houses
-        self.ac_on = [True] * self.num_houses  # New flag to track AC status
+        self.ac_on = [True] * self.num_houses
         self.energy_use = 0
         self.max_energy = 100
         self.game_over = False
         self.game_started = False
         self.selected_house = 0
         self.fan_angles = [0] * self.num_houses
+
+        # Load sound file (ensure 'fan_hum.wav' is in the same directory)
+        self.fan_sound = pygame.mixer.Sound("fan_hum.mp3")
+        self.fan_sound.set_volume(0.5)  # Default volume (0.0 to 1.0)
+        self.channels = [pygame.mixer.Channel(i) for i in range(self.num_houses)]  # One channel per house
 
         # GUI Setup
         self.house_controls = []
@@ -32,8 +42,7 @@ class ACGame:
         self.root.bind('r', self.reset_game)
 
     def create_widgets(self):
-        # [Existing create_widgets code remains largely unchanged]
-        # Energy meter (overall)
+        # [Existing create_widgets code remains unchanged]
         self.energy_frame = ttk.LabelFrame(self.root, text="Energy Meter")
         self.energy_frame.pack(padx=10, pady=5)
         self.energy_canvas = tk.Canvas(self.energy_frame, width=202, height=20,
@@ -44,7 +53,6 @@ class ACGame:
         self.energy_label = ttk.Label(self.energy_frame, text="Energy: 0/100")
         self.energy_label.pack()
 
-        # Overall comfort
         self.overall_comfort_frame = ttk.LabelFrame(self.root, text="Overall Comfort")
         self.overall_comfort_frame.pack(padx=10, pady=5)
         self.comfort_canvas = tk.Canvas(self.overall_comfort_frame, width=202, height=20,
@@ -55,7 +63,6 @@ class ACGame:
         self.comfort_percent_label = ttk.Label(self.overall_comfort_frame, text="65/100%")
         self.comfort_percent_label.pack()
 
-        # House controls
         self.houses_frame = ttk.Frame(self.root)
         self.houses_frame.pack(padx=10, pady=10)
 
@@ -102,21 +109,9 @@ class ACGame:
             energy_frame.pack(pady=2)
             bolt_canvas = tk.Canvas(energy_frame, width=30, height=30, bg='white', highlightthickness=0)
             bolt_canvas.pack(side=tk.LEFT)
-
-            # Adjusted points for a 30x30 lightning bolt
-            bolt_points = [
-                15, 0,   # Top point
-                7, 12,   # Left point after first zig (moved further left)
-                13, 15,  # Middle point
-                5, 30,   # Bottom point (moved further left)
-                20, 14,  # Right point before last zag (moved further right)
-                10, 12   # Point to complete the bolt
-            ]
-
-            # Draw the lightning bolt
+            bolt_points = [15, 0, 7, 12, 13, 15, 5, 30, 20, 14, 10, 12]
             bolt_canvas.create_polygon(bolt_points, fill='yellow', outline='black')
 
-            # Energy bar
             house_energy_canvas = tk.Canvas(energy_frame, width=82, height=20,
                                             bg='white', highlightthickness=1,
                                             highlightbackground='black')
@@ -145,6 +140,7 @@ class ACGame:
         ttk.Button(self.root, text="Reset (R)", command=self.reset_game).pack(pady=5)
 
     def create_ssd(self, canvas, temp):
+        # [Unchanged]
         segments = [
             [1, 1, 1, 0, 1, 1, 1],  # 0
             [0, 0, 1, 0, 0, 1, 0],  # 1
@@ -171,6 +167,7 @@ class ACGame:
         return segment_list
 
     def draw_digit(self, canvas, pattern, x_offset):
+        # [Unchanged]
         segment_coords = [
             (x_offset + 5, 7, x_offset + 15, 7),    # Top
             (x_offset + 5, 9, x_offset + 5, 19),   # Top-left
@@ -194,6 +191,7 @@ class ACGame:
         return segments
 
     def update_ssd(self, canvas, segments, temp):
+        # [Unchanged]
         for seg in segments:
             if seg:
                 canvas.delete(seg)
@@ -220,7 +218,6 @@ class ACGame:
             temp = self.thermostats[self.selected_house]
             if temp < 82:
                 self.thermostats[self.selected_house] = min(82, temp + 1)
-                # Toggle AC status
                 self.ac_on[self.selected_house] = self.thermostats[self.selected_house] < 79
                 self.update_game()
 
@@ -229,18 +226,20 @@ class ACGame:
             temp = self.thermostats[self.selected_house]
             if temp > 61:
                 self.thermostats[self.selected_house] = max(61, temp - 1)
-                # Toggle AC status
                 self.ac_on[self.selected_house] = self.thermostats[self.selected_house] < 79
                 self.update_game()
 
     def update_house_selection(self):
+        # [Unchanged]
         for i, house in enumerate(self.house_controls):
             if i == self.selected_house:
                 house['name_label'].config(font=("Arial", 14, "bold"))
             else:
                 house['name_label'].config(font=("Arial", 14))
+            # Turn off channels for homes not in
 
     def get_temp_color(self, temp):
+        # [Unchanged]
         min_temp, max_temp = 61, 82
         ratio = (temp - min_temp) / (max_temp - min_temp)
         ratio = max(0, min(1, ratio))
@@ -271,9 +270,9 @@ class ACGame:
         if not self.game_started or self.game_over:
             return
         for i, house in enumerate(self.house_controls):
-            if self.ac_on[i]:  # Only animate if AC is on
+            if self.ac_on[i]:
                 temp = self.thermostats[i]
-                speed = int(30 - (temp - 61) * (25 / 21))
+                speed = int(30 - (temp - 61) * (25 / 21))  # Fan speed
                 self.fan_angles[i] = (self.fan_angles[i] + speed) % 360
                 center_x, center_y = 25, 25
                 for j, blade in enumerate(house['fan_blades']):
@@ -281,14 +280,20 @@ class ACGame:
                     x = center_x + 15 * math.cos(angle)
                     y = center_y + 15 * math.sin(angle)
                     house['fan_canvas'].coords(blade, center_x, center_y, x, y)
+
+                # Adjust sound volume based on fan speed (temp range 61-78)
+                volume = max(0.1, 1.0 - (temp - 61) / 17)  # Volume from 0.1 to 1.0
+                self.channels[i].set_volume(volume)
+                if not self.channels[i].get_busy():  # Play sound if not already playing
+                    self.channels[i].play(self.fan_sound, loops=-1)  # Loop indefinitely
             else:
-                # Reset fan blades to default position when AC is off
                 center_x, center_y = 25, 25
                 for j, blade in enumerate(house['fan_blades']):
                     angle = math.radians(j * 90)
                     x = center_x + 15 * math.cos(angle)
                     y = center_y + 15 * math.sin(angle)
                     house['fan_canvas'].coords(blade, center_x, center_y, x, y)
+                self.channels[i].stop()  # Stop sound when AC is off
         self.root.after(50, self.animate_fans)
 
     def update_game(self):
@@ -325,11 +330,9 @@ class ACGame:
             self.house_controls[i]['comfort_label'].config(
                 text=f"Comfort: {comfort:.0f}%")
 
-            # Calculate and update house energy meter
-            house_energy = (max(0, 79 - temp) * 2.5) if self.ac_on[i] else 0  # Zero energy if AC is off
+            house_energy = (max(0, 79 - temp) * 2.5) if self.ac_on[i] else 0
             house_energy_values.append(house_energy)
-            # Scale to use full bar (80 pixels) for max individual energy (~45)
-            house_energy_width = (house_energy / 45) * 80  # 45 is max per house (79-61)*2.5
+            house_energy_width = (house_energy / 45) * 80
             if house_energy_width > 80:
                 house_energy_width = 80
             house_energy_color = 'green' if house_energy_width <= 25 else 'yellow' if house_energy_width <= 50 else 'red'
@@ -362,6 +365,7 @@ class ACGame:
             self.root.after(1000, self.update_game)
 
     def show_message(self, title, message):
+        # [Unchanged]
         popup = tk.Toplevel()
         popup.title(title)
         ttk.Label(popup, text=message).pack(padx=20, pady=20)
@@ -372,7 +376,7 @@ class ACGame:
         self.game_started = False
         self.selected_house = 0
         self.fan_angles = [0] * self.num_houses
-        self.ac_on = [True] * self.num_houses  # Reset AC status
+        self.ac_on = [True] * self.num_houses
         for i in range(self.num_houses):
             self.thermostats[i] = 77
             self.comfort_levels[i] = 65
@@ -400,6 +404,7 @@ class ACGame:
                 x = center_x + 15 * math.cos(angle)
                 y = center_y + 15 * math.sin(angle)
                 self.house_controls[i]['fan_canvas'].coords(blade, center_x, center_y, x, y)
+            self.channels[i].stop()  # Stop sound on reset
         self.energy_canvas.coords(self.energy_bar, 1, 1, 1, 19)
         self.energy_canvas.itemconfig(self.energy_bar, fill='green')
         self.energy_label.config(text="Energy: 0/100")
