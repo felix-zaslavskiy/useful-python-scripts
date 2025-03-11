@@ -2,6 +2,7 @@ import tkinter as tk
 from tkinter import ttk
 import math
 import pygame
+import random
 
 class ACGame:
     def __init__(self, root):
@@ -20,6 +21,7 @@ class ACGame:
         self.game_started = False
         self.selected_house = 0
         self.fan_angles = [0] * self.num_houses
+        self.outside_temp = 75  # Starting outside temperature
 
         self.fan_sound = pygame.mixer.Sound("fan_hum.mp3")
         self.fan_sound.set_volume(0.5)
@@ -36,6 +38,12 @@ class ACGame:
         self.root.bind('r', self.reset_game)
 
     def create_widgets(self):
+        # Outside Temperature Display
+        self.outside_temp_frame = ttk.LabelFrame(self.root, text="Outside Temperature")
+        self.outside_temp_frame.pack(padx=10, pady=5)
+        self.outside_temp_label = ttk.Label(self.outside_temp_frame, text=f"{self.outside_temp}°F", font=("Arial", 24))
+        self.outside_temp_label.pack()
+
         self.energy_frame = ttk.LabelFrame(self.root, text="Energy Meter")
         self.energy_frame.pack(padx=10, pady=5)
         self.energy_canvas = tk.Canvas(self.energy_frame, width=202, height=20,
@@ -61,17 +69,14 @@ class ACGame:
 
         names = ["Zach", "Dad", "Mom"]
         for i in range(self.num_houses):
-            # Create a frame for the house with a canvas to draw the rectangle and triangle
             house_frame = ttk.Frame(self.houses_frame)
             house_frame.pack(side=tk.LEFT, padx=5)
 
-            # Canvas to hold the rectangle and triangle (slightly larger than the house content)
             selection_canvas = tk.Canvas(house_frame, width=140, height=270, highlightthickness=0)
             selection_canvas.pack()
 
-            # Inner frame for house content
             frame = ttk.Frame(selection_canvas)
-            frame.place(x=10, y=30)  # Offset to leave space for the triangle on top
+            frame.place(x=10, y=30)
 
             name_label = ttk.Label(frame, text=names[i], font=("Arial", 14), anchor="center")
             name_label.pack(fill="x")
@@ -121,10 +126,7 @@ class ACGame:
             house_energy_canvas.pack(side=tk.LEFT)
             house_energy_bar = house_energy_canvas.create_rectangle(1, 1, 1, 19, fill='green')
 
-            # Draw rectangle around the house (initially hidden)
             rect = selection_canvas.create_rectangle(5, 25, 135, 268, outline='black', width=2, state='hidden')
-
-            # Draw triangle (roof) on top (initially hidden)
             tri = selection_canvas.create_polygon(70, 5, 5, 25, 135, 25, outline='black', width=2, state='hidden')
 
             self.house_controls.append({
@@ -141,31 +143,68 @@ class ACGame:
                 'comfort_label': comfort_label,
                 'house_energy_canvas': house_energy_canvas,
                 'house_energy_bar': house_energy_bar,
-                'selection_canvas': selection_canvas,  # Store the canvas
-                'rect': rect,  # Store the rectangle ID
-                'tri': tri     # Store the triangle ID
+                'selection_canvas': selection_canvas,
+                'rect': rect,
+                'tri': tri
             })
 
         self.update_house_selection()
-
         ttk.Button(self.root, text="Start Game (S)", command=self.start_game).pack(pady=5)
         ttk.Button(self.root, text="Reset (R)", command=self.reset_game).pack(pady=5)
+
+    def update_outside_temp(self):
+        if self.game_started and not self.game_over:
+            # Random walk: +1, 0, or -1
+            change = random.choice([-1, 0, 1])
+            new_temp = self.outside_temp + change
+            # Bound between 70 and 80
+            self.outside_temp = max(70, min(80, new_temp))
+            self.outside_temp_label.config(text=f"{self.outside_temp}°F")
+            # Schedule next update
+            self.root.after(5000, self.update_outside_temp)  # Every 5 seconds
+
+    def start_game(self, event=None):
+        if not self.game_started:
+            self.game_started = True
+            self.update_game()
+            self.animate_fans()
+            self.update_outside_temp()  # Start the outside temp updates
 
     def update_house_selection(self):
         for i, house in enumerate(self.house_controls):
             if i == self.selected_house:
                 house['name_label'].config(font=("Arial", 14, "bold"))
-                house['selection_canvas'].itemconfig(house['rect'], state='normal')  # Show rectangle
-                house['selection_canvas'].itemconfig(house['tri'], state='normal')   # Show triangle
+                house['selection_canvas'].itemconfig(house['rect'], state='normal')
+                house['selection_canvas'].itemconfig(house['tri'], state='normal')
             else:
                 house['name_label'].config(font=("Arial", 14))
-                house['selection_canvas'].itemconfig(house['rect'], state='hidden')  # Hide rectangle
-                house['selection_canvas'].itemconfig(house['tri'], state='hidden')   # Hide triangle
-                self.channels[i].stop()  # Stop sound for non-selected houses
+                house['selection_canvas'].itemconfig(house['rect'], state='hidden')
+                house['selection_canvas'].itemconfig(house['tri'], state='hidden')
+                self.channels[i].stop()
 
-    # [Rest of the methods remain unchanged: create_ssd, draw_digit, update_ssd, start_game,
-    # select_previous_house, select_next_house, increase_temp, decrease_temp, get_temp_color,
-    # animate_fans, update_game, show_message, reset_game]
+    def select_previous_house(self, event):
+        if not self.game_over:
+            self.selected_house = (self.selected_house - 1) % self.num_houses
+            self.update_house_selection()
+
+    def select_next_house(self, event):
+        if not self.game_over:
+            self.selected_house = (self.selected_house + 1) % self.num_houses
+            self.update_house_selection()
+
+    def increase_temp(self, event):
+        if not self.game_over and self.game_started:
+            temp = self.thermostats[self.selected_house]
+            if temp < 82:
+                self.thermostats[self.selected_house] = min(82, temp + 1)
+                self.update_game()
+
+    def decrease_temp(self, event):
+        if not self.game_over and self.game_started:
+            temp = self.thermostats[self.selected_house]
+            if temp > 61:
+                self.thermostats[self.selected_house] = max(61, temp - 1)
+                self.update_game()
 
     def create_ssd(self, canvas, temp):
         segments = [
@@ -195,13 +234,13 @@ class ACGame:
 
     def draw_digit(self, canvas, pattern, x_offset):
         segment_coords = [
-            (x_offset + 5, 7, x_offset + 15, 7),    # Top
-            (x_offset + 5, 9, x_offset + 5, 19),   # Top-left
-            (x_offset + 15, 9, x_offset + 15, 19), # Top-right
-            (x_offset + 5, 20, x_offset + 15, 20), # Middle
-            (x_offset + 5, 21, x_offset + 5, 31),  # Bottom-left
-            (x_offset + 15, 21, x_offset + 15, 31),# Bottom-right
-            (x_offset + 5, 32, x_offset + 15, 32)  # Bottom
+            (x_offset + 5, 7, x_offset + 15, 7),
+            (x_offset + 5, 9, x_offset + 5, 19),
+            (x_offset + 15, 9, x_offset + 15, 19),
+            (x_offset + 5, 20, x_offset + 15, 20),
+            (x_offset + 5, 21, x_offset + 5, 31),
+            (x_offset + 15, 21, x_offset + 15, 31),
+            (x_offset + 5, 32, x_offset + 15, 32)
         ]
 
         segments = []
@@ -222,48 +261,16 @@ class ACGame:
                 canvas.delete(seg)
         return self.create_ssd(canvas, temp)
 
-    def start_game(self, event=None):
-        if not self.game_started:
-            self.game_started = True
-            self.update_game()
-            self.animate_fans()
-
-    def select_previous_house(self, event):
-        if not self.game_over:
-            self.selected_house = (self.selected_house - 1) % self.num_houses
-            self.update_house_selection()
-
-    def select_next_house(self, event):
-        if not self.game_over:
-            self.selected_house = (self.selected_house + 1) % self.num_houses
-            self.update_house_selection()
-
-    def increase_temp(self, event):
-        if not self.game_over and self.game_started:
-            temp = self.thermostats[self.selected_house]
-            if temp < 82:
-                self.thermostats[self.selected_house] = min(82, temp + 1)
-                self.ac_on[self.selected_house] = self.thermostats[self.selected_house] < 79
-                self.update_game()
-
-    def decrease_temp(self, event):
-        if not self.game_over and self.game_started:
-            temp = self.thermostats[self.selected_house]
-            if temp > 61:
-                self.thermostats[self.selected_house] = max(61, temp - 1)
-                self.ac_on[self.selected_house] = self.thermostats[self.selected_house] < 79
-                self.update_game()
-
     def get_temp_color(self, temp):
         min_temp, max_temp = 61, 82
         ratio = (temp - min_temp) / (max_temp - min_temp)
         ratio = max(0, min(1, ratio))
 
         colors = [
-            (0, 0, 255),    # Blue at 61°F
-            (255, 255, 0),  # Yellow at ~68°F
-            (255, 165, 0),  # Orange at ~75°F
-            (255, 0, 0)     # Red at 82°F
+            (0, 0, 255),
+            (255, 255, 0),
+            (255, 165, 0),
+            (255, 0, 0)
         ]
 
         if ratio <= 0.33:
@@ -322,6 +329,9 @@ class ACGame:
         house_energy_values = []
         for i in range(self.num_houses):
             temp = self.thermostats[i]
+            # Update AC status based on outside temperature
+            self.ac_on[i] = self.outside_temp > temp  # AC on if outside temp > thermostat
+
             comfort = max(0, 100 - abs(temp - 72) * 5)
             self.comfort_levels[i] = comfort
             total_comfort += comfort
@@ -348,7 +358,7 @@ class ACGame:
             self.house_controls[i]['comfort_label'].config(
                 text=f"Comfort: {comfort:.0f}%")
 
-            house_energy = (max(0, 79 - temp) * 2.5) if self.ac_on[i] else 0
+            house_energy = (max(0, self.outside_temp - temp) * 2.5) if self.ac_on[i] else 0  # Energy based on outside temp
             house_energy_values.append(house_energy)
             house_energy_width = (house_energy / 45) * 80
             if house_energy_width > 80:
@@ -394,6 +404,8 @@ class ACGame:
         self.selected_house = 0
         self.fan_angles = [0] * self.num_houses
         self.ac_on = [True] * self.num_houses
+        self.outside_temp = 75  # Reset outside temp to 75°F
+        self.outside_temp_label.config(text=f"{self.outside_temp}°F")
         for i in range(self.num_houses):
             self.thermostats[i] = 77
             self.comfort_levels[i] = 65
