@@ -1,18 +1,15 @@
 import tkinter as tk
 from tkinter import ttk
 import math
-import pygame  # Import pygame for sound
+import pygame
 
 class ACGame:
     def __init__(self, root):
         self.root = root
         self.root.title("AC Management Game")
 
-        # Initialize pygame mixer for sound
         pygame.mixer.init()
 
-
-        # Game variables
         self.num_houses = 3
         self.thermostats = [77] * self.num_houses
         self.comfort_levels = [65] * self.num_houses
@@ -24,16 +21,13 @@ class ACGame:
         self.selected_house = 0
         self.fan_angles = [0] * self.num_houses
 
-        # Load sound file (ensure 'fan_hum.wav' is in the same directory)
         self.fan_sound = pygame.mixer.Sound("fan_hum.mp3")
-        self.fan_sound.set_volume(0.5)  # Default volume (0.0 to 1.0)
-        self.channels = [pygame.mixer.Channel(i) for i in range(self.num_houses)]  # One channel per house
+        self.fan_sound.set_volume(0.5)
+        self.channels = [pygame.mixer.Channel(i) for i in range(self.num_houses)]
 
-        # GUI Setup
         self.house_controls = []
         self.create_widgets()
 
-        # Bind arrow keys and shortcuts
         self.root.bind('<Left>', self.select_previous_house)
         self.root.bind('<Right>', self.select_next_house)
         self.root.bind('<Up>', self.increase_temp)
@@ -42,7 +36,6 @@ class ACGame:
         self.root.bind('r', self.reset_game)
 
     def create_widgets(self):
-        # [Existing create_widgets code remains unchanged]
         self.energy_frame = ttk.LabelFrame(self.root, text="Energy Meter")
         self.energy_frame.pack(padx=10, pady=5)
         self.energy_canvas = tk.Canvas(self.energy_frame, width=202, height=20,
@@ -68,8 +61,18 @@ class ACGame:
 
         names = ["Zach", "Dad", "Mom"]
         for i in range(self.num_houses):
-            frame = ttk.Frame(self.houses_frame)
-            frame.pack(side=tk.LEFT, padx=5)
+            # Create a frame for the house with a canvas to draw the rectangle and triangle
+            house_frame = ttk.Frame(self.houses_frame)
+            house_frame.pack(side=tk.LEFT, padx=5)
+
+            # Canvas to hold the rectangle and triangle (slightly larger than the house content)
+            selection_canvas = tk.Canvas(house_frame, width=140, height=270, highlightthickness=0)
+            selection_canvas.pack()
+
+            # Inner frame for house content
+            frame = ttk.Frame(selection_canvas)
+            frame.place(x=10, y=30)  # Offset to leave space for the triangle on top
+
             name_label = ttk.Label(frame, text=names[i], font=("Arial", 14), anchor="center")
             name_label.pack(fill="x")
             if i == 0:
@@ -118,6 +121,12 @@ class ACGame:
             house_energy_canvas.pack(side=tk.LEFT)
             house_energy_bar = house_energy_canvas.create_rectangle(1, 1, 1, 19, fill='green')
 
+            # Draw rectangle around the house (initially hidden)
+            rect = selection_canvas.create_rectangle(5, 25, 135, 268, outline='black', width=2, state='hidden')
+
+            # Draw triangle (roof) on top (initially hidden)
+            tri = selection_canvas.create_polygon(70, 5, 5, 25, 135, 25, outline='black', width=2, state='hidden')
+
             self.house_controls.append({
                 'frame': frame,
                 'name_label': name_label,
@@ -131,7 +140,10 @@ class ACGame:
                 'ssd_segments': ssd_segments,
                 'comfort_label': comfort_label,
                 'house_energy_canvas': house_energy_canvas,
-                'house_energy_bar': house_energy_bar
+                'house_energy_bar': house_energy_bar,
+                'selection_canvas': selection_canvas,  # Store the canvas
+                'rect': rect,  # Store the rectangle ID
+                'tri': tri     # Store the triangle ID
             })
 
         self.update_house_selection()
@@ -139,8 +151,23 @@ class ACGame:
         ttk.Button(self.root, text="Start Game (S)", command=self.start_game).pack(pady=5)
         ttk.Button(self.root, text="Reset (R)", command=self.reset_game).pack(pady=5)
 
+    def update_house_selection(self):
+        for i, house in enumerate(self.house_controls):
+            if i == self.selected_house:
+                house['name_label'].config(font=("Arial", 14, "bold"))
+                house['selection_canvas'].itemconfig(house['rect'], state='normal')  # Show rectangle
+                house['selection_canvas'].itemconfig(house['tri'], state='normal')   # Show triangle
+            else:
+                house['name_label'].config(font=("Arial", 14))
+                house['selection_canvas'].itemconfig(house['rect'], state='hidden')  # Hide rectangle
+                house['selection_canvas'].itemconfig(house['tri'], state='hidden')   # Hide triangle
+                self.channels[i].stop()  # Stop sound for non-selected houses
+
+    # [Rest of the methods remain unchanged: create_ssd, draw_digit, update_ssd, start_game,
+    # select_previous_house, select_next_house, increase_temp, decrease_temp, get_temp_color,
+    # animate_fans, update_game, show_message, reset_game]
+
     def create_ssd(self, canvas, temp):
-        # [Unchanged]
         segments = [
             [1, 1, 1, 0, 1, 1, 1],  # 0
             [0, 0, 1, 0, 0, 1, 0],  # 1
@@ -167,7 +194,6 @@ class ACGame:
         return segment_list
 
     def draw_digit(self, canvas, pattern, x_offset):
-        # [Unchanged]
         segment_coords = [
             (x_offset + 5, 7, x_offset + 15, 7),    # Top
             (x_offset + 5, 9, x_offset + 5, 19),   # Top-left
@@ -191,7 +217,6 @@ class ACGame:
         return segments
 
     def update_ssd(self, canvas, segments, temp):
-        # [Unchanged]
         for seg in segments:
             if seg:
                 canvas.delete(seg)
@@ -229,17 +254,7 @@ class ACGame:
                 self.ac_on[self.selected_house] = self.thermostats[self.selected_house] < 79
                 self.update_game()
 
-    def update_house_selection(self):
-        for i, house in enumerate(self.house_controls):
-            if i == self.selected_house:
-                house['name_label'].config(font=("Arial", 14, "bold"))
-                # Sound will be handled by animate_fans; no need to start it here
-            else:
-                house['name_label'].config(font=("Arial", 14))
-                self.channels[i].stop()  # Stop sound for non-selected houses
-
     def get_temp_color(self, temp):
-        # [Unchanged]
         min_temp, max_temp = 61, 82
         ratio = (temp - min_temp) / (max_temp - min_temp)
         ratio = max(0, min(1, ratio))
@@ -281,7 +296,6 @@ class ACGame:
                     y = center_y + 15 * math.sin(angle)
                     house['fan_canvas'].coords(blade, center_x, center_y, x, y)
 
-                # Adjust sound volume based on fan speed
                 if i == self.selected_house:
                     volume = max(0.1, 1.0 - (temp - 61) / 17)
                     self.channels[i].set_volume(volume)
@@ -290,7 +304,6 @@ class ACGame:
                 else:
                     self.channels[i].stop()
             else:
-                # Reset fan blades and stop sound for non-selected or AC-off houses
                 center_x, center_y = 25, 25
                 for j, blade in enumerate(house['fan_blades']):
                     angle = math.radians(j * 90)
@@ -298,7 +311,6 @@ class ACGame:
                     y = center_y + 15 * math.sin(angle)
                     house['fan_canvas'].coords(blade, center_x, center_y, x, y)
                 self.channels[i].stop()
-
 
         self.root.after(50, self.animate_fans)
 
@@ -371,7 +383,6 @@ class ACGame:
             self.root.after(1000, self.update_game)
 
     def show_message(self, title, message):
-        # [Unchanged]
         popup = tk.Toplevel()
         popup.title(title)
         ttk.Label(popup, text=message).pack(padx=20, pady=20)
@@ -410,7 +421,7 @@ class ACGame:
                 x = center_x + 15 * math.cos(angle)
                 y = center_y + 15 * math.sin(angle)
                 self.house_controls[i]['fan_canvas'].coords(blade, center_x, center_y, x, y)
-            self.channels[i].stop()  # Stop sound on reset
+            self.channels[i].stop()
         self.energy_canvas.coords(self.energy_bar, 1, 1, 1, 19)
         self.energy_canvas.itemconfig(self.energy_bar, fill='green')
         self.energy_label.config(text="Energy: 0/100")
