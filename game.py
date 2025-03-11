@@ -230,13 +230,13 @@ class ACGame:
                 self.update_game()
 
     def update_house_selection(self):
-        # [Unchanged]
         for i, house in enumerate(self.house_controls):
             if i == self.selected_house:
                 house['name_label'].config(font=("Arial", 14, "bold"))
+                # Sound will be handled by animate_fans; no need to start it here
             else:
                 house['name_label'].config(font=("Arial", 14))
-            # Turn off channels for homes not in
+                self.channels[i].stop()  # Stop sound for non-selected houses
 
     def get_temp_color(self, temp):
         # [Unchanged]
@@ -272,7 +272,7 @@ class ACGame:
         for i, house in enumerate(self.house_controls):
             if self.ac_on[i]:
                 temp = self.thermostats[i]
-                speed = int(30 - (temp - 61) * (25 / 21))  # Fan speed
+                speed = int(30 - (temp - 61) * (25 / 21))
                 self.fan_angles[i] = (self.fan_angles[i] + speed) % 360
                 center_x, center_y = 25, 25
                 for j, blade in enumerate(house['fan_blades']):
@@ -281,19 +281,25 @@ class ACGame:
                     y = center_y + 15 * math.sin(angle)
                     house['fan_canvas'].coords(blade, center_x, center_y, x, y)
 
-                # Adjust sound volume based on fan speed (temp range 61-78)
-                volume = max(0.1, 1.0 - (temp - 61) / 17)  # Volume from 0.1 to 1.0
-                self.channels[i].set_volume(volume)
-                if not self.channels[i].get_busy():  # Play sound if not already playing
-                    self.channels[i].play(self.fan_sound, loops=-1)  # Loop indefinitely
+                # Adjust sound volume based on fan speed
+                if i == self.selected_house:
+                    volume = max(0.1, 1.0 - (temp - 61) / 17)
+                    self.channels[i].set_volume(volume)
+                    if not self.channels[i].get_busy():
+                        self.channels[i].play(self.fan_sound, loops=-1)
+                else:
+                    self.channels[i].stop()
             else:
+                # Reset fan blades and stop sound for non-selected or AC-off houses
                 center_x, center_y = 25, 25
                 for j, blade in enumerate(house['fan_blades']):
                     angle = math.radians(j * 90)
                     x = center_x + 15 * math.cos(angle)
                     y = center_y + 15 * math.sin(angle)
                     house['fan_canvas'].coords(blade, center_x, center_y, x, y)
-                self.channels[i].stop()  # Stop sound when AC is off
+                self.channels[i].stop()
+
+
         self.root.after(50, self.animate_fans)
 
     def update_game(self):
