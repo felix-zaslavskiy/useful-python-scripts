@@ -25,7 +25,7 @@ class ACGame:
         self.outside_temp = 75
         self.time_left = 60
         self.total_score = 0
-        self.update_game_id = None  # Track update_game after ID
+        self.update_game_id = None
 
         self.fan_sound = pygame.mixer.Sound("fan_hum.mp3")
         self.fan_sound.set_volume(0.5)
@@ -181,7 +181,7 @@ class ACGame:
     def update_game_and_timer(self):
         if self.game_started and not self.game_over:
             # Update game state
-            self.update_game()
+            self.update_game(from_timer=True)  # Pass flag to indicate timer-driven update
             # Update timer
             self.time_left -= 1
             self.timer_label.config(text=f"{self.time_left} s")
@@ -194,16 +194,26 @@ class ACGame:
                 self.update_game_id = self.root.after(1000, self.update_game_and_timer)
 
     def start_game(self, event=None):
-        if not self.game_started:
-            self.game_started = True
-            self.game_over = False
-            self.time_left = 60
-            self.total_score = 0
-            self.timer_label.config(text=f"{self.time_left} s")
-            self.score_label.config(text=f"{self.total_score}")
-            self.animate_fans()
-            self.update_outside_temp()
-            self.update_game_and_timer()  # Start combined update loop
+        if self.update_game_id is not None:
+            self.root.after_cancel(self.update_game_id)
+            self.update_game_id = None
+        self.game_started = True
+        self.game_over = False
+        self.time_left = 60
+        self.total_score = 0
+        self.timer_label.config(text=f"{self.time_left} s")
+        self.score_label.config(text=f"{self.total_score}")
+        # Reset initial conditions
+        self.outside_temp = 75
+        self.outside_temp_label.config(text=f"{self.outside_temp}°F")
+        for i in range(self.num_houses):
+            self.thermostats[i] = 77
+            self.house_temps[i] = 77
+            self.ac_on[i] = True
+            self.update_house_display(i)
+        self.animate_fans()
+        self.update_outside_temp()
+        self.update_game_and_timer()
 
     def update_house_selection(self):
         for i, house in enumerate(self.house_controls):
@@ -232,14 +242,14 @@ class ACGame:
             temp = self.thermostats[self.selected_house]
             if temp < 82:
                 self.thermostats[self.selected_house] = min(82, temp + 1)
-                self.update_game()  # Immediate update for responsiveness
+                self.update_game(from_timer=False)  # Update without scoring
 
     def decrease_temp(self, event):
         if not self.game_over and self.game_started:
             temp = self.thermostats[self.selected_house]
             if temp > 61:
                 self.thermostats[self.selected_house] = max(61, temp - 1)
-                self.update_game()  # Immediate update for responsiveness
+                self.update_game(from_timer=False)  # Update without scoring
 
     def create_ssd(self, canvas, temp):
         segments = [
@@ -356,7 +366,35 @@ class ACGame:
 
         self.root.after(50, self.animate_fans)
 
-    def update_game(self):
+    def update_house_display(self, house_index):
+        house = self.house_controls[house_index]
+        thermostat = self.thermostats[house_index]
+        house_temp = self.house_temps[house_index]
+        comfort = max(0, 100 - abs(house_temp - 72) * 5)
+        self.comfort_levels[house_index] = comfort
+
+        comfort_width = (comfort / 100) * 100
+        comfort_color = 'red' if comfort < 50 else 'yellow' if comfort < 80 else 'green'
+        house['comfort_canvas'].coords(house['comfort_bar'], 1, 1, comfort_width, 19)
+        house['comfort_canvas'].itemconfig(house['comfort_bar'], fill=comfort_color)
+        house['comfort_label'].config(text=f"Comfort: {comfort:.0f}%")
+
+        temp_color = self.get_temp_color(house_temp)
+        house['temp_canvas'].coords(house['temp_bar'], 1, 1, 101, 19)
+        house['temp_canvas'].itemconfig(house['temp_bar'], fill=temp_color)
+        house['temp_canvas'].itemconfig(house['temp_text'], text=f"{house_temp}°F")
+
+        house['ssd_segments'] = self.update_ssd(house['ssd_canvas'], house['ssd_segments'], thermostat)
+
+        house_energy = (max(0, self.outside_temp - thermostat) * 2.5) if self.ac_on[house_index] else 0
+        house_energy_width = (house_energy / 45) * 80
+        if house_energy_width > 80:
+            house_energy_width = 80
+        house_energy_color = 'green' if house_energy_width <= 25 else 'yellow' if house_energy_width <= 50 else 'red'
+        house['house_energy_canvas'].coords(house['house_energy_bar'], 1, 1, house_energy_width, 19)
+        house['house_energy_canvas'].itemconfig(house['house_energy_bar'], fill=house_energy_color)
+
+    def update_game(self, from_timer=False):
         if not self.game_started or self.game_over:
             return
 
@@ -382,46 +420,16 @@ class ACGame:
             self.comfort_levels[i] = comfort
             total_comfort += comfort
 
-            comfort_width = (comfort / 100) * 100
-            comfort_color = 'red' if comfort < 50 else 'yellow' if comfort < 80 else 'green'
-            self.house_controls[i]['comfort_canvas'].coords(
-                self.house_controls[i]['comfort_bar'], 1, 1, comfort_width, 19)
-            self.house_controls[i]['comfort_canvas'].itemconfig(
-                self.house_controls[i]['comfort_bar'], fill=comfort_color)
-
-            temp_color = self.get_temp_color(house_temp)
-            self.house_controls[i]['temp_canvas'].coords(
-                self.house_controls[i]['temp_bar'], 1, 1, 101, 19)
-            self.house_controls[i]['temp_canvas'].itemconfig(
-                self.house_controls[i]['temp_bar'], fill=temp_color)
-            self.house_controls[i]['temp_canvas'].itemconfig(
-                self.house_controls[i]['temp_text'], text=f"{house_temp}°F")
-
-            self.house_controls[i]['ssd_segments'] = self.update_ssd(
-                self.house_controls[i]['ssd_canvas'],
-                self.house_controls[i]['ssd_segments'],
-                thermostat
-            )
-
-            self.house_controls[i]['comfort_label'].config(
-                text=f"Comfort: {comfort:.0f}%")
-
             house_energy = (max(0, self.outside_temp - thermostat) * 2.5) if self.ac_on[i] else 0
             house_energy_values.append(house_energy)
-            house_energy_width = (house_energy / 45) * 80
-            if house_energy_width > 80:
-                house_energy_width = 80
-            house_energy_color = 'green' if house_energy_width <= 25 else 'yellow' if house_energy_width <= 50 else 'red'
-            self.house_controls[i]['house_energy_canvas'].coords(
-                self.house_controls[i]['house_energy_bar'], 1, 1, house_energy_width, 19)
-            self.house_controls[i]['house_energy_canvas'].itemconfig(
-                self.house_controls[i]['house_energy_bar'], fill=house_energy_color)
+
+            self.update_house_display(i)
 
         avg_comfort = total_comfort / self.num_houses
         self.energy_use = sum(house_energy_values)
 
-        # Only update score when called from the timer loop (not manual calls)
-        if self.update_game_id is not None:
+        # Only update score when called from the timer loop
+        if from_timer:
             score = (avg_comfort * 0.6) + ((100 - self.energy_use) * 0.4)
             self.total_score = int(self.total_score + score)
             self.score_label.config(text=f"{self.total_score}")
@@ -455,8 +463,8 @@ class ACGame:
         ttk.Label(popup, text=message).pack(padx=20, pady=20)
         ok_button = ttk.Button(popup, text="OK", command=popup.destroy)
         ok_button.pack(pady=10)
-        popup.bind('<Return>', lambda event: popup.destroy())  # Enter key closes popup
-        popup.focus_set()  # Ensure popup takes focus for key binding
+        popup.bind('<Return>', lambda event: popup.destroy())
+        popup.focus_set()
 
     def reset_game(self, event=None):
         if self.update_game_id is not None:
@@ -477,33 +485,7 @@ class ACGame:
             self.thermostats[i] = 77
             self.house_temps[i] = 77
             self.comfort_levels[i] = 65
-            self.house_controls[i]['comfort_canvas'].coords(
-                self.house_controls[i]['comfort_bar'], 1, 1, 66, 19)
-            self.house_controls[i]['comfort_canvas'].itemconfig(
-                self.house_controls[i]['comfort_bar'], fill='yellow')
-            self.house_controls[i]['temp_canvas'].coords(
-                self.house_controls[i]['temp_bar'], 1, 1, 101, 19)
-            self.house_controls[i]['temp_canvas'].itemconfig(
-                self.house_controls[i]['temp_bar'], fill='#FFA500')
-            self.house_controls[i]['temp_canvas'].itemconfig(
-                self.house_controls[i]['temp_text'], text="77°F")
-            self.house_controls[i]['ssd_segments'] = self.update_ssd(
-                self.house_controls[i]['ssd_canvas'],
-                self.house_controls[i]['ssd_segments'],
-                77
-            )
-            self.house_controls[i]['comfort_label'].config(text="Comfort: 65%")
-            self.house_controls[i]['house_energy_canvas'].coords(
-                self.house_controls[i]['house_energy_bar'], 1, 1, 1, 19)
-            self.house_controls[i]['house_energy_canvas'].itemconfig(
-                self.house_controls[i]['house_energy_bar'], fill='green')
-            center_x, center_y = 25, 25
-            for j, blade in enumerate(self.house_controls[i]['fan_blades']):
-                angle = math.radians(j * 90)
-                x = center_x + 15 * math.cos(angle)
-                y = center_y + 15 * math.sin(angle)
-                self.house_controls[i]['fan_canvas'].coords(blade, center_x, center_y, x, y)
-            self.channels[i].stop()
+            self.update_house_display(i)
         self.energy_canvas.coords(self.energy_bar, 1, 1, 1, 19)
         self.energy_canvas.itemconfig(self.energy_bar, fill='green')
         self.energy_label.config(text="Energy: 0/100")
