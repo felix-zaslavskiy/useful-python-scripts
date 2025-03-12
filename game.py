@@ -47,15 +47,13 @@ class ACGame:
         self.top_frame = ttk.Frame(self.root)
         self.top_frame.pack(padx=10, pady=5)
 
-        # Outside Temperature with Gradient Background
+        # Outside Temperature with Gradient Background using Canvas Text
         self.outside_temp_frame = ttk.LabelFrame(self.top_frame, text="Outside Temperature")
         self.outside_temp_frame.pack(side=tk.LEFT, padx=20)
-        self.outside_temp_canvas = tk.Canvas(self.outside_temp_frame, width=80, height=30,
-                                             highlightthickness=0)
+        self.outside_temp_canvas = tk.Canvas(self.outside_temp_frame, width=80, height=30, highlightthickness=0)
         self.outside_temp_canvas.pack()
         self.outside_temp_rect = self.outside_temp_canvas.create_rectangle(0, 0, 80, 30, fill=self.get_temp_color(self.outside_temp))
-        self.outside_temp_label = ttk.Label(self.outside_temp_frame, text=f"{self.outside_temp}°F", font=("Arial", 20), background="")
-        self.outside_temp_label.place(in_=self.outside_temp_canvas, x=40, y=15, anchor="center")
+        self.outside_temp_text = self.outside_temp_canvas.create_text(40, 15, text=f"{self.outside_temp}°F", font=("Arial", 20), fill="black", anchor="center")
 
         self.timer_frame = ttk.LabelFrame(self.top_frame, text="Time Left")
         self.timer_frame.pack(side=tk.LEFT, padx=20)
@@ -187,7 +185,7 @@ class ACGame:
             change = random.choice([-1, 0, 1])
             new_temp = self.outside_temp + change
             self.outside_temp = max(70, min(80, new_temp))
-            self.outside_temp_label.config(text=f"{self.outside_temp}°F")
+            self.outside_temp_canvas.itemconfig(self.outside_temp_text, text=f"{self.outside_temp}°F")
             self.outside_temp_canvas.itemconfig(self.outside_temp_rect, fill=self.get_temp_color(self.outside_temp))
             self.root.after(5000, self.update_outside_temp)
 
@@ -214,19 +212,19 @@ class ACGame:
         self.total_score = 0
         self.high_comfort_seconds = 0
         self.bonus_awarded = False
-        self.energy_use = 0  # Reset energy use
+        self.energy_use = 0
         self.timer_label.config(text=f"{self.time_left} s")
         self.score_label.config(text=f"{self.total_score}")
         self.bonus_label.config(text="")
         self.outside_temp = 75
-        self.outside_temp_label.config(text=f"{self.outside_temp}°F")
+        self.outside_temp_canvas.itemconfig(self.outside_temp_text, text=f"{self.outside_temp}°F")
         self.outside_temp_canvas.itemconfig(self.outside_temp_rect, fill=self.get_temp_color(self.outside_temp))
         for i in range(self.num_houses):
             self.thermostats[i] = 77
             self.house_temps[i] = 77
             self.ac_on[i] = True
             self.update_house_display(i)
-        self.energy_canvas.coords(self.energy_bar, 1, 1, 1, 19)  # Reset energy bar
+        self.energy_canvas.coords(self.energy_bar, 1, 1, 1, 19)
         self.energy_label.config(text=f"Energy: {self.energy_use:.1f}/{self.max_energy}")
         self.animate_fans()
         self.update_outside_temp()
@@ -510,8 +508,8 @@ class ACGame:
         self.total_score = 0
         self.high_comfort_seconds = 0
         self.bonus_awarded = False
-        self.energy_use = 0  # Reset energy use
-        self.outside_temp_label.config(text=f"{self.outside_temp}°F")
+        self.energy_use = 0
+        self.outside_temp_canvas.itemconfig(self.outside_temp_text, text=f"{self.outside_temp}°F")
         self.outside_temp_canvas.itemconfig(self.outside_temp_rect, fill=self.get_temp_color(self.outside_temp))
         self.timer_label.config(text=f"{self.time_left} s")
         self.score_label.config(text=f"{self.total_score}")
@@ -520,6 +518,7 @@ class ACGame:
             self.thermostats[i] = 77
             self.house_temps[i] = 77
             self.comfort_levels[i] = 65
+            self.channels[i].stop()  # Stop all AC sounds
             self.update_house_display(i)
         self.energy_canvas.coords(self.energy_bar, 1, 1, 1, 19)
         self.energy_canvas.itemconfig(self.energy_bar, fill='green')
