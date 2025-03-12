@@ -54,7 +54,7 @@ class ACGame:
                                              highlightthickness=0)
         self.outside_temp_canvas.pack()
         self.outside_temp_rect = self.outside_temp_canvas.create_rectangle(0, 0, 80, 30, fill=self.get_temp_color(self.outside_temp))
-        self.outside_temp_label = ttk.Label(self.outside_temp_frame, text=f"{self.outside_temp}°F", font=("Arial", 20))
+        self.outside_temp_label = ttk.Label(self.outside_temp_frame, text=f"{self.outside_temp}°F", font=("Arial", 20), background="")
         self.outside_temp_label.place(in_=self.outside_temp_canvas, x=40, y=15, anchor="center")
 
         self.timer_frame = ttk.LabelFrame(self.top_frame, text="Time Left")
@@ -214,6 +214,7 @@ class ACGame:
         self.total_score = 0
         self.high_comfort_seconds = 0
         self.bonus_awarded = False
+        self.energy_use = 0  # Reset energy use
         self.timer_label.config(text=f"{self.time_left} s")
         self.score_label.config(text=f"{self.total_score}")
         self.bonus_label.config(text="")
@@ -225,6 +226,8 @@ class ACGame:
             self.house_temps[i] = 77
             self.ac_on[i] = True
             self.update_house_display(i)
+        self.energy_canvas.coords(self.energy_bar, 1, 1, 1, 19)  # Reset energy bar
+        self.energy_label.config(text=f"Energy: {self.energy_use:.1f}/{self.max_energy}")
         self.animate_fans()
         self.update_outside_temp()
         self.update_game_and_timer()
@@ -477,12 +480,12 @@ class ACGame:
 
         if self.energy_use > self.max_energy:
             self.game_over = True
-        if self.update_game_id is not None:
-            self.root.after_cancel(self.update_game_id)
-        self.update_game_id = None
-        for channel in self.channels:
-            channel.stop()
-        self.show_message("Game Over", f"Energy exceeded! Final Score: {self.total_score}")
+            if self.update_game_id is not None:
+                self.root.after_cancel(self.update_game_id)
+                self.update_game_id = None
+            for channel in self.channels:
+                channel.stop()
+            self.show_message("Game Over", f"Energy exceeded! Final Score: {self.total_score}")
 
     def show_message(self, title, message):
         popup = tk.Toplevel()
@@ -507,6 +510,7 @@ class ACGame:
         self.total_score = 0
         self.high_comfort_seconds = 0
         self.bonus_awarded = False
+        self.energy_use = 0  # Reset energy use
         self.outside_temp_label.config(text=f"{self.outside_temp}°F")
         self.outside_temp_canvas.itemconfig(self.outside_temp_rect, fill=self.get_temp_color(self.outside_temp))
         self.timer_label.config(text=f"{self.time_left} s")
@@ -519,7 +523,7 @@ class ACGame:
             self.update_house_display(i)
         self.energy_canvas.coords(self.energy_bar, 1, 1, 1, 19)
         self.energy_canvas.itemconfig(self.energy_bar, fill='green')
-        self.energy_label.config(text="Energy: 0/100")
+        self.energy_label.config(text=f"Energy: {self.energy_use:.1f}/{self.max_energy}")
         self.comfort_canvas.coords(self.comfort_bar, 1, 1, 130, 19)
         self.comfort_canvas.itemconfig(self.comfort_bar, fill='yellow')
         self.comfort_percent_label.config(text="65/100%")
