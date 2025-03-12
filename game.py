@@ -23,6 +23,8 @@ class ACGame:
         self.selected_house = 0
         self.fan_angles = [0] * self.num_houses
         self.outside_temp = 75
+        self.time_left = 60  # 60 seconds
+        self.total_score = 0  # Running total score
 
         self.fan_sound = pygame.mixer.Sound("fan_hum.mp3")
         self.fan_sound.set_volume(0.5)
@@ -39,10 +41,23 @@ class ACGame:
         self.root.bind('r', self.reset_game)
 
     def create_widgets(self):
+        # Outside Temperature Display
         self.outside_temp_frame = ttk.LabelFrame(self.root, text="Outside Temperature")
         self.outside_temp_frame.pack(padx=10, pady=5)
         self.outside_temp_label = ttk.Label(self.outside_temp_frame, text=f"{self.outside_temp}°F", font=("Arial", 24))
         self.outside_temp_label.pack()
+
+        # Countdown Clock
+        self.timer_frame = ttk.LabelFrame(self.root, text="Time Left")
+        self.timer_frame.pack(padx=10, pady=5)
+        self.timer_label = ttk.Label(self.timer_frame, text=f"{self.time_left} s", font=("Arial", 20))
+        self.timer_label.pack()
+
+        # Score Display
+        self.score_frame = ttk.LabelFrame(self.root, text="Score")
+        self.score_frame.pack(padx=10, pady=5)
+        self.score_label = ttk.Label(self.score_frame, text=f"{self.total_score}", font=("Arial", 20))
+        self.score_label.pack()
 
         self.energy_frame = ttk.LabelFrame(self.root, text="Energy Meter")
         self.energy_frame.pack(padx=10, pady=5)
@@ -101,7 +116,6 @@ class ACGame:
                                     highlightbackground='black')
             temp_canvas.pack(pady=2)
             temp_bar = temp_canvas.create_rectangle(1, 1, 101, 19, fill='#FFA500')
-            # Add text on top of temp_bar, centered
             temp_text = temp_canvas.create_text(51, 10, text="77°F", font=("Arial", 10), fill='black')
 
             fan_canvas = tk.Canvas(frame, width=50, height=50, bg='white')
@@ -138,7 +152,7 @@ class ACGame:
                 'comfort_bar': comfort_bar,
                 'temp_canvas': temp_canvas,
                 'temp_bar': temp_bar,
-                'temp_text': temp_text,  # Store the text ID
+                'temp_text': temp_text,
                 'fan_canvas': fan_canvas,
                 'fan_blades': blades,
                 'ssd_canvas': ssd_canvas,
@@ -163,12 +177,28 @@ class ACGame:
             self.outside_temp_label.config(text=f"{self.outside_temp}°F")
             self.root.after(5000, self.update_outside_temp)
 
+    def update_timer(self):
+        if self.game_started and not self.game_over:
+            self.time_left -= 1
+            self.timer_label.config(text=f"{self.time_left} s")
+            if self.time_left <= 0:
+                self.game_over = True
+                self.show_message("Game Over", f"Time's up! Final Score: {self.total_score}")
+            else:
+                self.root.after(1000, self.update_timer)
+
     def start_game(self, event=None):
         if not self.game_started:
             self.game_started = True
+            self.game_over = False
+            self.time_left = 60  # Reset to 60 seconds
+            self.total_score = 0  # Reset score
+            self.timer_label.config(text=f"{self.time_left} s")
+            self.score_label.config(text=f"{self.total_score}")
             self.update_game()
             self.animate_fans()
             self.update_outside_temp()
+            self.update_timer()  # Start the timer
 
     def update_house_selection(self):
         for i, house in enumerate(self.house_controls):
@@ -359,7 +389,6 @@ class ACGame:
                 self.house_controls[i]['temp_bar'], 1, 1, 101, 19)
             self.house_controls[i]['temp_canvas'].itemconfig(
                 self.house_controls[i]['temp_bar'], fill=temp_color)
-            # Update the text on the temp_bar
             self.house_controls[i]['temp_canvas'].itemconfig(
                 self.house_controls[i]['temp_text'], text=f"{house_temp}°F")
 
@@ -384,8 +413,13 @@ class ACGame:
                 self.house_controls[i]['house_energy_bar'], fill=house_energy_color)
 
         avg_comfort = total_comfort / self.num_houses
-
         self.energy_use = sum(house_energy_values)
+
+        # Calculate score for this second
+        score = (avg_comfort * 0.6) + ((100 - self.energy_use) * 0.4)
+        self.total_score += int(score)  # Add to running total, rounded to integer
+        self.score_label.config(text=f"{self.total_score}")
+
         energy_width = (self.energy_use / self.max_energy) * 200
         if energy_width > 200:
             energy_width = 200
@@ -401,8 +435,8 @@ class ACGame:
         self.comfort_percent_label.config(text=f"{avg_comfort:.0f}/100%")
 
         if self.energy_use > self.max_energy:
-            self.show_message("Game Over", "Energy usage exceeded maximum!")
             self.game_over = True
+            self.show_message("Game Over", f"Energy exceeded! Final Score: {self.total_score}")
         else:
             self.root.after(1000, self.update_game)
 
@@ -419,7 +453,11 @@ class ACGame:
         self.fan_angles = [0] * self.num_houses
         self.ac_on = [True] * self.num_houses
         self.outside_temp = 75
+        self.time_left = 60  # Reset timer
+        self.total_score = 0  # Reset score
         self.outside_temp_label.config(text=f"{self.outside_temp}°F")
+        self.timer_label.config(text=f"{self.time_left} s")
+        self.score_label.config(text=f"{self.total_score}")
         for i in range(self.num_houses):
             self.thermostats[i] = 77
             self.house_temps[i] = 77
@@ -433,7 +471,7 @@ class ACGame:
             self.house_controls[i]['temp_canvas'].itemconfig(
                 self.house_controls[i]['temp_bar'], fill='#FFA500')
             self.house_controls[i]['temp_canvas'].itemconfig(
-                self.house_controls[i]['temp_text'], text="77°F")  # Reset temp text
+                self.house_controls[i]['temp_text'], text="77°F")
             self.house_controls[i]['ssd_segments'] = self.update_ssd(
                 self.house_controls[i]['ssd_canvas'],
                 self.house_controls[i]['ssd_segments'],
