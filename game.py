@@ -26,8 +26,8 @@ class ACGame:
         self.time_left = 60
         self.total_score = 0
         self.update_game_id = None
-        self.high_comfort_seconds = 0  # Track seconds at ≥ 90% comfort
-        self.bonus_awarded = False  # Flag for one-time bonus
+        self.high_comfort_seconds = 0
+        self.bonus_awarded = False
 
         self.fan_sound = pygame.mixer.Sound("fan_hum.mp3")
         self.fan_sound.set_volume(0.5)
@@ -47,10 +47,15 @@ class ACGame:
         self.top_frame = ttk.Frame(self.root)
         self.top_frame.pack(padx=10, pady=5)
 
+        # Outside Temperature with Gradient Background
         self.outside_temp_frame = ttk.LabelFrame(self.top_frame, text="Outside Temperature")
         self.outside_temp_frame.pack(side=tk.LEFT, padx=20)
+        self.outside_temp_canvas = tk.Canvas(self.outside_temp_frame, width=80, height=30,
+                                             highlightthickness=0)
+        self.outside_temp_canvas.pack()
+        self.outside_temp_rect = self.outside_temp_canvas.create_rectangle(0, 0, 80, 30, fill=self.get_temp_color(self.outside_temp))
         self.outside_temp_label = ttk.Label(self.outside_temp_frame, text=f"{self.outside_temp}°F", font=("Arial", 20))
-        self.outside_temp_label.pack()
+        self.outside_temp_label.place(in_=self.outside_temp_canvas, x=40, y=15, anchor="center")
 
         self.timer_frame = ttk.LabelFrame(self.top_frame, text="Time Left")
         self.timer_frame.pack(side=tk.LEFT, padx=20)
@@ -62,7 +67,6 @@ class ACGame:
         self.score_label = ttk.Label(self.score_frame, text=f"{self.total_score}", font=("Arial", 20))
         self.score_label.pack()
 
-        # Bonus Label
         self.bonus_frame = ttk.LabelFrame(self.top_frame, text="Bonus")
         self.bonus_frame.pack(side=tk.LEFT, padx=20)
         self.bonus_label = ttk.Label(self.bonus_frame, text="", font=("Arial", 20))
@@ -184,6 +188,7 @@ class ACGame:
             new_temp = self.outside_temp + change
             self.outside_temp = max(70, min(80, new_temp))
             self.outside_temp_label.config(text=f"{self.outside_temp}°F")
+            self.outside_temp_canvas.itemconfig(self.outside_temp_rect, fill=self.get_temp_color(self.outside_temp))
             self.root.after(5000, self.update_outside_temp)
 
     def update_game_and_timer(self):
@@ -207,13 +212,14 @@ class ACGame:
         self.game_over = False
         self.time_left = 60
         self.total_score = 0
-        self.high_comfort_seconds = 0  # Reset bonus tracking
-        self.bonus_awarded = False  # Reset bonus flag
+        self.high_comfort_seconds = 0
+        self.bonus_awarded = False
         self.timer_label.config(text=f"{self.time_left} s")
         self.score_label.config(text=f"{self.total_score}")
-        self.bonus_label.config(text="")  # Clear bonus label
+        self.bonus_label.config(text="")
         self.outside_temp = 75
         self.outside_temp_label.config(text=f"{self.outside_temp}°F")
+        self.outside_temp_canvas.itemconfig(self.outside_temp_rect, fill=self.get_temp_color(self.outside_temp))
         for i in range(self.num_houses):
             self.thermostats[i] = 77
             self.house_temps[i] = 77
@@ -320,10 +326,10 @@ class ACGame:
         ratio = max(0, min(1, ratio))
 
         colors = [
-            (0, 0, 255),
-            (255, 255, 0),
-            (255, 165, 0),
-            (255, 0, 0)
+            (0, 0, 255),    # Blue at 61°F
+            (255, 255, 0),  # Yellow
+            (255, 165, 0),  # Orange
+            (255, 0, 0)     # Red at 82°F
         ]
 
         if ratio <= 0.33:
@@ -440,20 +446,18 @@ class ACGame:
         self.energy_use = sum(house_energy_values)
 
         if from_timer:
-            # Regular scoring
             score = (avg_comfort * 0.6) + ((100 - self.energy_use) * 0.4)
             self.total_score = int(self.total_score + score)
 
-            # Bonus scoring for maintaining ≥ 90% comfort
             if avg_comfort >= 90.0:
                 self.high_comfort_seconds += 1
                 if self.high_comfort_seconds >= 5 and not self.bonus_awarded:
-                    self.total_score += 100  # One-time bonus
+                    self.total_score += 100
                     self.bonus_awarded = True
                     self.bonus_label.config(text="+100")
-                    self.root.after(3000, self.clear_bonus_label)  # Clear after 3 seconds
+                    self.root.after(3000, self.clear_bonus_label)
             else:
-                self.high_comfort_seconds = 0  # Reset if comfort drops below 90%
+                self.high_comfort_seconds = 0
 
             self.score_label.config(text=f"{self.total_score}")
 
@@ -473,12 +477,12 @@ class ACGame:
 
         if self.energy_use > self.max_energy:
             self.game_over = True
-            if self.update_game_id is not None:
-                self.root.after_cancel(self.update_game_id)
-                self.update_game_id = None
-            for channel in self.channels:
-                channel.stop()
-            self.show_message("Game Over", f"Energy exceeded! Final Score: {self.total_score}")
+        if self.update_game_id is not None:
+            self.root.after_cancel(self.update_game_id)
+        self.update_game_id = None
+        for channel in self.channels:
+            channel.stop()
+        self.show_message("Game Over", f"Energy exceeded! Final Score: {self.total_score}")
 
     def show_message(self, title, message):
         popup = tk.Toplevel()
@@ -501,12 +505,13 @@ class ACGame:
         self.outside_temp = 75
         self.time_left = 60
         self.total_score = 0
-        self.high_comfort_seconds = 0  # Reset bonus tracking
-        self.bonus_awarded = False  # Reset bonus flag
+        self.high_comfort_seconds = 0
+        self.bonus_awarded = False
         self.outside_temp_label.config(text=f"{self.outside_temp}°F")
+        self.outside_temp_canvas.itemconfig(self.outside_temp_rect, fill=self.get_temp_color(self.outside_temp))
         self.timer_label.config(text=f"{self.time_left} s")
         self.score_label.config(text=f"{self.total_score}")
-        self.bonus_label.config(text="")  # Clear bonus label
+        self.bonus_label.config(text="")
         for i in range(self.num_houses):
             self.thermostats[i] = 77
             self.house_temps[i] = 77
