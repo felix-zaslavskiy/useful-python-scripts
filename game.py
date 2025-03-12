@@ -14,10 +14,10 @@ class ACGame:
         # Configuration Section
         self.config = {
             # Temperature Bounds
-            'min_thermostat_temp': 61,
-            'max_thermostat_temp': 82,
-            'min_outside_temp': 70,
-            'max_outside_temp': 80,
+            'min_thermostat_temp': 50,
+            'max_thermostat_temp': 90,
+            'min_outside_temp': 60,
+            'max_outside_temp': 95,
             'ideal_comfort_temp': 72,
 
             # Comfort Parameters
