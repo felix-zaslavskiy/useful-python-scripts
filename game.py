@@ -13,11 +13,10 @@ class ACGame:
 
         # Configuration Section
         self.config = {
-            # Temperature Bounds
-            'min_thermostat_temp': 50,
-            'max_thermostat_temp': 90,
-            'min_outside_temp': 60,
-            'max_outside_temp': 95,
+            'min_thermostat_temp': 50,    # Updated
+            'max_thermostat_temp': 90,    # Updated
+            'min_outside_temp': 60,       # Updated
+            'max_outside_temp': 95,       # Updated
             'ideal_comfort_temp': 72,
 
             # Comfort Parameters
@@ -26,9 +25,7 @@ class ACGame:
             # Energy Parameters
             'energy_factor': 2.5,
             'max_energy': 100,
-            'house_energy_bar_max': 45,  # Scaling factor for house energy bar
-
-            # Gameplay Constants
+            'house_energy_bar_max': 45,
             'initial_time': 60,
             'score_comfort_weight': 0.6,
             'score_energy_weight': 0.4,
