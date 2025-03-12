@@ -26,6 +26,8 @@ class ACGame:
         self.time_left = 60
         self.total_score = 0
         self.update_game_id = None
+        self.high_comfort_seconds = 0  # Track seconds at ≥ 90% comfort
+        self.bonus_awarded = False  # Flag for one-time bonus
 
         self.fan_sound = pygame.mixer.Sound("fan_hum.mp3")
         self.fan_sound.set_volume(0.5)
@@ -59,6 +61,12 @@ class ACGame:
         self.score_frame.pack(side=tk.LEFT, padx=20)
         self.score_label = ttk.Label(self.score_frame, text=f"{self.total_score}", font=("Arial", 20))
         self.score_label.pack()
+
+        # Bonus Label
+        self.bonus_frame = ttk.LabelFrame(self.top_frame, text="Bonus")
+        self.bonus_frame.pack(side=tk.LEFT, padx=20)
+        self.bonus_label = ttk.Label(self.bonus_frame, text="", font=("Arial", 20))
+        self.bonus_label.pack()
 
         self.energy_frame = ttk.LabelFrame(self.root, text="Energy Meter")
         self.energy_frame.pack(padx=10, pady=5)
@@ -180,9 +188,7 @@ class ACGame:
 
     def update_game_and_timer(self):
         if self.game_started and not self.game_over:
-            # Update game state
-            self.update_game(from_timer=True)  # Pass flag to indicate timer-driven update
-            # Update timer
+            self.update_game(from_timer=True)
             self.time_left -= 1
             self.timer_label.config(text=f"{self.time_left} s")
             if self.time_left <= 0:
@@ -201,9 +207,11 @@ class ACGame:
         self.game_over = False
         self.time_left = 60
         self.total_score = 0
+        self.high_comfort_seconds = 0  # Reset bonus tracking
+        self.bonus_awarded = False  # Reset bonus flag
         self.timer_label.config(text=f"{self.time_left} s")
         self.score_label.config(text=f"{self.total_score}")
-        # Reset initial conditions
+        self.bonus_label.config(text="")  # Clear bonus label
         self.outside_temp = 75
         self.outside_temp_label.config(text=f"{self.outside_temp}°F")
         for i in range(self.num_houses):
@@ -242,14 +250,14 @@ class ACGame:
             temp = self.thermostats[self.selected_house]
             if temp < 82:
                 self.thermostats[self.selected_house] = min(82, temp + 1)
-                self.update_game(from_timer=False)  # Update without scoring
+                self.update_game(from_timer=False)
 
     def decrease_temp(self, event):
         if not self.game_over and self.game_started:
             temp = self.thermostats[self.selected_house]
             if temp > 61:
                 self.thermostats[self.selected_house] = max(61, temp - 1)
-                self.update_game(from_timer=False)  # Update without scoring
+                self.update_game(from_timer=False)
 
     def create_ssd(self, canvas, temp):
         segments = [
@@ -394,6 +402,9 @@ class ACGame:
         house['house_energy_canvas'].coords(house['house_energy_bar'], 1, 1, house_energy_width, 19)
         house['house_energy_canvas'].itemconfig(house['house_energy_bar'], fill=house_energy_color)
 
+    def clear_bonus_label(self):
+        self.bonus_label.config(text="")
+
     def update_game(self, from_timer=False):
         if not self.game_started or self.game_over:
             return
@@ -428,10 +439,22 @@ class ACGame:
         avg_comfort = total_comfort / self.num_houses
         self.energy_use = sum(house_energy_values)
 
-        # Only update score when called from the timer loop
         if from_timer:
+            # Regular scoring
             score = (avg_comfort * 0.6) + ((100 - self.energy_use) * 0.4)
             self.total_score = int(self.total_score + score)
+
+            # Bonus scoring for maintaining ≥ 90% comfort
+            if avg_comfort >= 90.0:
+                self.high_comfort_seconds += 1
+                if self.high_comfort_seconds >= 5 and not self.bonus_awarded:
+                    self.total_score += 100  # One-time bonus
+                    self.bonus_awarded = True
+                    self.bonus_label.config(text="+100")
+                    self.root.after(3000, self.clear_bonus_label)  # Clear after 3 seconds
+            else:
+                self.high_comfort_seconds = 0  # Reset if comfort drops below 90%
+
             self.score_label.config(text=f"{self.total_score}")
 
         energy_width = (self.energy_use / self.max_energy) * 200
@@ -478,9 +501,12 @@ class ACGame:
         self.outside_temp = 75
         self.time_left = 60
         self.total_score = 0
+        self.high_comfort_seconds = 0  # Reset bonus tracking
+        self.bonus_awarded = False  # Reset bonus flag
         self.outside_temp_label.config(text=f"{self.outside_temp}°F")
         self.timer_label.config(text=f"{self.time_left} s")
         self.score_label.config(text=f"{self.total_score}")
+        self.bonus_label.config(text="")  # Clear bonus label
         for i in range(self.num_houses):
             self.thermostats[i] = 77
             self.house_temps[i] = 77
