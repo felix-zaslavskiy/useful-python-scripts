@@ -23,8 +23,8 @@ class ACGame:
         self.selected_house = 0
         self.fan_angles = [0] * self.num_houses
         self.outside_temp = 75
-        self.time_left = 60  # 60 seconds
-        self.total_score = 0  # Running total score
+        self.time_left = 60
+        self.total_score = 0
 
         self.fan_sound = pygame.mixer.Sound("fan_hum.mp3")
         self.fan_sound.set_volume(0.5)
@@ -41,21 +41,25 @@ class ACGame:
         self.root.bind('r', self.reset_game)
 
     def create_widgets(self):
-        # Outside Temperature Display
-        self.outside_temp_frame = ttk.LabelFrame(self.root, text="Outside Temperature")
-        self.outside_temp_frame.pack(padx=10, pady=5)
-        self.outside_temp_label = ttk.Label(self.outside_temp_frame, text=f"{self.outside_temp}°F", font=("Arial", 24))
+        # Top frame for horizontal layout of Temp, Timer, and Score
+        self.top_frame = ttk.Frame(self.root)
+        self.top_frame.pack(padx=10, pady=5)
+
+        # Outside Temperature
+        self.outside_temp_frame = ttk.LabelFrame(self.top_frame, text="Outside Temperature")
+        self.outside_temp_frame.pack(side=tk.LEFT, padx=20)
+        self.outside_temp_label = ttk.Label(self.outside_temp_frame, text=f"{self.outside_temp}°F", font=("Arial", 20))
         self.outside_temp_label.pack()
 
         # Countdown Clock
-        self.timer_frame = ttk.LabelFrame(self.root, text="Time Left")
-        self.timer_frame.pack(padx=10, pady=5)
+        self.timer_frame = ttk.LabelFrame(self.top_frame, text="Time Left")
+        self.timer_frame.pack(side=tk.LEFT, padx=20)
         self.timer_label = ttk.Label(self.timer_frame, text=f"{self.time_left} s", font=("Arial", 20))
         self.timer_label.pack()
 
         # Score Display
-        self.score_frame = ttk.LabelFrame(self.root, text="Score")
-        self.score_frame.pack(padx=10, pady=5)
+        self.score_frame = ttk.LabelFrame(self.top_frame, text="Score")
+        self.score_frame.pack(side=tk.LEFT, padx=20)
         self.score_label = ttk.Label(self.score_frame, text=f"{self.total_score}", font=("Arial", 20))
         self.score_label.pack()
 
@@ -183,6 +187,8 @@ class ACGame:
             self.timer_label.config(text=f"{self.time_left} s")
             if self.time_left <= 0:
                 self.game_over = True
+                for channel in self.channels:  # Stop all sounds
+                    channel.stop()
                 self.show_message("Game Over", f"Time's up! Final Score: {self.total_score}")
             else:
                 self.root.after(1000, self.update_timer)
@@ -191,14 +197,14 @@ class ACGame:
         if not self.game_started:
             self.game_started = True
             self.game_over = False
-            self.time_left = 60  # Reset to 60 seconds
-            self.total_score = 0  # Reset score
+            self.time_left = 60
+            self.total_score = 0
             self.timer_label.config(text=f"{self.time_left} s")
             self.score_label.config(text=f"{self.total_score}")
             self.update_game()
             self.animate_fans()
             self.update_outside_temp()
-            self.update_timer()  # Start the timer
+            self.update_timer()
 
     def update_house_selection(self):
         for i, house in enumerate(self.house_controls):
@@ -415,9 +421,9 @@ class ACGame:
         avg_comfort = total_comfort / self.num_houses
         self.energy_use = sum(house_energy_values)
 
-        # Calculate score for this second
+        # Calculate score for this second (only once per update)
         score = (avg_comfort * 0.6) + ((100 - self.energy_use) * 0.4)
-        self.total_score += int(score)  # Add to running total, rounded to integer
+        self.total_score = int(self.total_score + score)  # Ensure integer addition
         self.score_label.config(text=f"{self.total_score}")
 
         energy_width = (self.energy_use / self.max_energy) * 200
@@ -436,6 +442,8 @@ class ACGame:
 
         if self.energy_use > self.max_energy:
             self.game_over = True
+            for channel in self.channels:  # Stop all sounds
+                channel.stop()
             self.show_message("Game Over", f"Energy exceeded! Final Score: {self.total_score}")
         else:
             self.root.after(1000, self.update_game)
@@ -453,8 +461,8 @@ class ACGame:
         self.fan_angles = [0] * self.num_houses
         self.ac_on = [True] * self.num_houses
         self.outside_temp = 75
-        self.time_left = 60  # Reset timer
-        self.total_score = 0  # Reset score
+        self.time_left = 60
+        self.total_score = 0
         self.outside_temp_label.config(text=f"{self.outside_temp}°F")
         self.timer_label.config(text=f"{self.time_left} s")
         self.score_label.config(text=f"{self.total_score}")
