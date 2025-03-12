@@ -47,7 +47,6 @@ class ACGame:
         self.top_frame = ttk.Frame(self.root)
         self.top_frame.pack(padx=10, pady=5)
 
-        # Outside Temperature with Gradient Background using Canvas Text
         self.outside_temp_frame = ttk.LabelFrame(self.top_frame, text="Outside Temperature")
         self.outside_temp_frame.pack(side=tk.LEFT, padx=20)
         self.outside_temp_canvas = tk.Canvas(self.outside_temp_frame, width=80, height=30, highlightthickness=0)
@@ -257,14 +256,18 @@ class ACGame:
             temp = self.thermostats[self.selected_house]
             if temp < 82:
                 self.thermostats[self.selected_house] = min(82, temp + 1)
-                self.update_game(from_timer=False)
+                # Update SSD display immediately
+                house = self.house_controls[self.selected_house]
+                house['ssd_segments'] = self.update_ssd(house['ssd_canvas'], house['ssd_segments'], self.thermostats[self.selected_house])
 
     def decrease_temp(self, event):
         if not self.game_over and self.game_started:
             temp = self.thermostats[self.selected_house]
             if temp > 61:
                 self.thermostats[self.selected_house] = max(61, temp - 1)
-                self.update_game(from_timer=False)
+                # Update SSD display immediately
+                house = self.house_controls[self.selected_house]
+                house['ssd_segments'] = self.update_ssd(house['ssd_canvas'], house['ssd_segments'], self.thermostats[self.selected_house])
 
     def create_ssd(self, canvas, temp):
         segments = [
@@ -518,7 +521,7 @@ class ACGame:
             self.thermostats[i] = 77
             self.house_temps[i] = 77
             self.comfort_levels[i] = 65
-            self.channels[i].stop()  # Stop all AC sounds
+            self.channels[i].stop()
             self.update_house_display(i)
         self.energy_canvas.coords(self.energy_bar, 1, 1, 1, 19)
         self.energy_canvas.itemconfig(self.energy_bar, fill='green')
