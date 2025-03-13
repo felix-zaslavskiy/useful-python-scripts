@@ -17,25 +17,25 @@ class ACGame:
             'max_thermostat_temp': 90,
             'min_outside_temp': 60,
             'max_outside_temp': 95,
-            'house_comfort_temps': [70, 72, 74],  # New: Zach=70°F, Dad=72°F, Mom=74°F
+            'house_comfort_temps': [70, 72, 74],  # Zach=70°F, Dad=72°F, Mom=74°F
             'comfort_factor': 5,
             'energy_factor': 2.5,
             'max_energy': 100,
             'house_energy_bar_max': 45,
             'initial_time': 60,
-            'score_comfort_weight': 0.6,
-            'score_energy_weight': 0.4,
+            'score_comfort_weight': 0.6,  # Updated from 0.7
+            'score_energy_weight': 0.4,  # Updated from 0.3
             'bonus_comfort_threshold': 95.0,
             'bonus_seconds': 5,
             'bonus_points': 100,
             'max_score_per_second': 100,
             'temp_init_spread': 5,
-            'weather_event_chance': 0.05  # New: 5% chance of weather event
+            'weather_event_chance': 0.05
         }
 
         self.num_houses = 3
-        self.thermostats = [self.config['house_comfort_temps'][i] for i in range(self.num_houses)]  # Initial placeholder
-        self.house_temps = [self.config['house_comfort_temps'][i] for i in range(self.num_houses)]  # Initial placeholder
+        self.thermostats = [self.config['house_comfort_temps'][i] for i in range(self.num_houses)]
+        self.house_temps = [self.config['house_comfort_temps'][i] for i in range(self.num_houses)]
         self.comfort_levels = [100] * self.num_houses
         self.ac_on = [True] * self.num_houses
         self.energy_use = 0
@@ -43,7 +43,7 @@ class ACGame:
         self.game_started = False
         self.selected_house = 0
         self.fan_angles = [0] * self.num_houses
-        self.outside_temp = 75  # Initial placeholder between 73-77
+        self.outside_temp = 75
         self.time_left = self.config['initial_time']
         self.total_score = 0
         self.score_per_second = 0
@@ -136,6 +136,10 @@ class ACGame:
             if i == 0:
                 name_label.config(font=("Arial", 14, "bold"))
 
+            # New: Ideal temp label in top-right corner
+            ideal_temp_label = ttk.Label(selection_canvas, text=f"{self.config['house_comfort_temps'][i]}°", font=("Arial", 10), anchor="ne")
+            ideal_temp_label.place(x=110, y=26)  # Top-right corner of rectangle (5, 25, 135, 268)
+
             comfort_canvas = tk.Canvas(frame, width=102, height=20, bg='white', highlightthickness=1, highlightbackground='black')
             comfort_canvas.pack(pady=2)
             comfort_bar = comfort_canvas.create_rectangle(1, 1, 100, 19, fill='green')
@@ -180,6 +184,7 @@ class ACGame:
             self.house_controls.append({
                 'frame': frame,
                 'name_label': name_label,
+                'ideal_temp_label': ideal_temp_label,  # New: Store reference if needed
                 'comfort_canvas': comfort_canvas,
                 'comfort_bar': comfort_bar,
                 'temp_canvas': temp_canvas,
@@ -202,10 +207,8 @@ class ACGame:
 
     def update_outside_temp(self):
         if self.game_started and not self.game_over:
-            # Normal small fluctuation
             change = random.choice([-1, 0, 1])
             new_temp = self.outside_temp + change
-            # Dynamic Weather Event: 5% chance for ±5°F swing
             if random.random() < self.config['weather_event_chance']:
                 new_temp += random.choice([-5, 5])
             self.outside_temp = max(self.config['min_outside_temp'], min(self.config['max_outside_temp'], new_temp))
@@ -242,12 +245,10 @@ class ACGame:
         self.score_label.config(text=f"{self.total_score}")
         self.bonus_label.config(text="")
 
-        # Randomly initialize outside temp between 73°F and 77°F
         self.outside_temp = random.randint(73, 77)
         self.outside_temp_canvas.itemconfig(self.outside_temp_text, text=f"{self.outside_temp}°F")
         self.outside_temp_canvas.itemconfig(self.outside_temp_rect, fill=self.get_temp_color(self.outside_temp))
 
-        # Randomly initialize thermostats within ±5°F of house-specific ideal
         spread = self.config['temp_init_spread']
         for i in range(self.num_houses):
             ideal = self.config['house_comfort_temps'][i]
@@ -422,7 +423,7 @@ class ACGame:
         house = self.house_controls[house_index]
         thermostat = self.thermostats[house_index]
         house_temp = self.house_temps[house_index]
-        ideal_temp = self.config['house_comfort_temps'][house_index]  # Use house-specific ideal temp
+        ideal_temp = self.config['house_comfort_temps'][house_index]
         comfort = max(0, 100 - abs(house_temp - ideal_temp) * self.config['comfort_factor'])
         self.comfort_levels[house_index] = comfort
 
@@ -472,7 +473,7 @@ class ACGame:
                     self.house_temps[i] = max(self.outside_temp, self.house_temps[i] - 1)
 
             house_temp = self.house_temps[i]
-            ideal_temp = self.config['house_comfort_temps'][i]  # Use house-specific ideal temp
+            ideal_temp = self.config['house_comfort_temps'][i]
             comfort = max(0, 100 - abs(house_temp - ideal_temp) * self.config['comfort_factor'])
             self.comfort_levels[i] = comfort
             total_comfort += comfort
@@ -508,25 +509,25 @@ class ACGame:
             self.score_canvas.itemconfig(self.score_bar, fill=score_color)
             self.score_per_second_label.config(text=f"{self.score_per_second:.1f}")
 
-        energy_width = (self.energy_use / self.config['max_energy']) * 200
-        if energy_width > 200:
-            energy_width = 200
-        energy_color = 'green' if self.energy_use <= 50 else 'yellow' if self.energy_use <= 80 else 'red'
-        self.energy_canvas.coords(self.energy_bar, 1, 1, energy_width, 19)
-        self.energy_canvas.itemconfig(self.energy_bar, fill=energy_color)
-        self.energy_label.config(text=f"Energy: {self.energy_use:.1f}/{self.config['max_energy']}")
+            energy_width = (self.energy_use / self.config['max_energy']) * 200
+            if energy_width > 200:
+                energy_width = 200
+            energy_color = 'green' if self.energy_use <= 50 else 'yellow' if self.energy_use <= 80 else 'red'
+            self.energy_canvas.coords(self.energy_bar, 1, 1, energy_width, 19)
+            self.energy_canvas.itemconfig(self.energy_bar, fill=energy_color)
+            self.energy_label.config(text=f"Energy: {self.energy_use:.1f}/{self.config['max_energy']}")
 
-        comfort_width = (avg_comfort / 100) * 200
-        comfort_color = 'red' if avg_comfort < 50 else 'yellow' if avg_comfort < 80 else 'green'
-        self.comfort_canvas.coords(self.comfort_bar, 1, 1, comfort_width, 19)
-        self.comfort_canvas.itemconfig(self.comfort_bar, fill=comfort_color)
-        self.comfort_percent_label.config(text=f"{avg_comfort:.0f}/100%")
+            comfort_width = (avg_comfort / 100) * 200
+            comfort_color = 'red' if avg_comfort < 50 else 'yellow' if avg_comfort < 80 else 'green'
+            self.comfort_canvas.coords(self.comfort_bar, 1, 1, comfort_width, 19)
+            self.comfort_canvas.itemconfig(self.comfort_bar, fill=comfort_color)
+            self.comfort_percent_label.config(text=f"{avg_comfort:.0f}/100%")
 
-        if self.energy_use > self.config['max_energy']:
-            self.game_over = True
+            if self.energy_use > self.config['max_energy']:
+                self.game_over = True
             if self.update_game_id is not None:
                 self.root.after_cancel(self.update_game_id)
-                self.update_game_id = None
+            self.update_game_id = None
             for channel in self.channels:
                 channel.stop()
             self.show_message("Game Over", f"Energy exceeded! Final Score: {self.total_score}")
