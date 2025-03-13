@@ -29,7 +29,7 @@ class ACGame:
             'bonus_seconds': 5,
             'bonus_points': 100,
             'max_score_per_second': 100,
-            'temp_init_spread': 4  # New: ±4°F spread for initial temps
+            'temp_init_spread': 5  # New: ±4°F spread for initial temps
         }
 
         self.num_houses = 3
