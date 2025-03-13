@@ -27,8 +27,8 @@ class ACGame:
             'max_energy': 100,
             'house_energy_bar_max': 45,
             'initial_time': 60,
-            'score_comfort_weight': 0.6,
-            'score_energy_weight': 0.4,
+            'score_comfort_weight': 0.7,
+            'score_energy_weight': 0.3,
             'bonus_comfort_threshold': 95.0,
             'bonus_seconds': 5,
             'bonus_points': 100
@@ -208,7 +208,7 @@ class ACGame:
             self.outside_temp = max(self.config['min_outside_temp'], min(self.config['max_outside_temp'], new_temp))
             self.outside_temp_canvas.itemconfig(self.outside_temp_text, text=f"{self.outside_temp}°F")
             self.outside_temp_canvas.itemconfig(self.outside_temp_rect, fill=self.get_temp_color(self.outside_temp))
-            self.root.after(5000, self.update_outside_temp)
+            self.root.after(3000, self.update_outside_temp)
 
     def update_game_and_timer(self):
         if self.game_started and not self.game_over:
