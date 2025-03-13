@@ -23,8 +23,8 @@ class ACGame:
             'max_energy': 100,
             'house_energy_bar_max': 45,
             'initial_time': 60,
-            'score_comfort_weight': 0.6,  # Updated from 0.7
-            'score_energy_weight': 0.4,  # Updated from 0.3
+            'score_comfort_weight': 0.6,
+            'score_energy_weight': 0.4,
             'bonus_comfort_threshold': 95.0,
             'bonus_seconds': 5,
             'bonus_points': 100,
@@ -136,9 +136,8 @@ class ACGame:
             if i == 0:
                 name_label.config(font=("Arial", 14, "bold"))
 
-            # New: Ideal temp label in top-right corner
             ideal_temp_label = ttk.Label(selection_canvas, text=f"{self.config['house_comfort_temps'][i]}°", font=("Arial", 10), anchor="ne")
-            ideal_temp_label.place(x=110, y=26)  # Top-right corner of rectangle (5, 25, 135, 268)
+            ideal_temp_label.place(x=110, y=26)
 
             comfort_canvas = tk.Canvas(frame, width=102, height=20, bg='white', highlightthickness=1, highlightbackground='black')
             comfort_canvas.pack(pady=2)
@@ -184,7 +183,7 @@ class ACGame:
             self.house_controls.append({
                 'frame': frame,
                 'name_label': name_label,
-                'ideal_temp_label': ideal_temp_label,  # New: Store reference if needed
+                'ideal_temp_label': ideal_temp_label,
                 'comfort_canvas': comfort_canvas,
                 'comfort_bar': comfort_bar,
                 'temp_canvas': temp_canvas,
@@ -509,25 +508,25 @@ class ACGame:
             self.score_canvas.itemconfig(self.score_bar, fill=score_color)
             self.score_per_second_label.config(text=f"{self.score_per_second:.1f}")
 
-            energy_width = (self.energy_use / self.config['max_energy']) * 200
-            if energy_width > 200:
-                energy_width = 200
-            energy_color = 'green' if self.energy_use <= 50 else 'yellow' if self.energy_use <= 80 else 'red'
-            self.energy_canvas.coords(self.energy_bar, 1, 1, energy_width, 19)
-            self.energy_canvas.itemconfig(self.energy_bar, fill=energy_color)
-            self.energy_label.config(text=f"Energy: {self.energy_use:.1f}/{self.config['max_energy']}")
+        energy_width = (self.energy_use / self.config['max_energy']) * 200
+        if energy_width > 200:
+            energy_width = 200
+        energy_color = 'green' if self.energy_use <= 50 else 'yellow' if self.energy_use <= 80 else 'red'
+        self.energy_canvas.coords(self.energy_bar, 1, 1, energy_width, 19)
+        self.energy_canvas.itemconfig(self.energy_bar, fill=energy_color)
+        self.energy_label.config(text=f"Energy: {self.energy_use:.1f}/{self.config['max_energy']}")
 
-            comfort_width = (avg_comfort / 100) * 200
-            comfort_color = 'red' if avg_comfort < 50 else 'yellow' if avg_comfort < 80 else 'green'
-            self.comfort_canvas.coords(self.comfort_bar, 1, 1, comfort_width, 19)
-            self.comfort_canvas.itemconfig(self.comfort_bar, fill=comfort_color)
-            self.comfort_percent_label.config(text=f"{avg_comfort:.0f}/100%")
+        comfort_width = (avg_comfort / 100) * 200
+        comfort_color = 'red' if avg_comfort < 50 else 'yellow' if avg_comfort < 80 else 'green'
+        self.comfort_canvas.coords(self.comfort_bar, 1, 1, comfort_width, 19)
+        self.comfort_canvas.itemconfig(self.comfort_bar, fill=comfort_color)
+        self.comfort_percent_label.config(text=f"{avg_comfort:.0f}/100%")
 
-            if self.energy_use > self.config['max_energy']:
-                self.game_over = True
+        if self.energy_use > self.config['max_energy']:
+            self.game_over = True
             if self.update_game_id is not None:
                 self.root.after_cancel(self.update_game_id)
-            self.update_game_id = None
+                self.update_game_id = None
             for channel in self.channels:
                 channel.stop()
             self.show_message("Game Over", f"Energy exceeded! Final Score: {self.total_score}")
