@@ -13,16 +13,12 @@ class ACGame:
 
         # Configuration Section
         self.config = {
-            'min_thermostat_temp': 50,    # Updated
-            'max_thermostat_temp': 90,    # Updated
-            'min_outside_temp': 60,       # Updated
-            'max_outside_temp': 95,       # Updated
+            'min_thermostat_temp': 50,
+            'max_thermostat_temp': 90,
+            'min_outside_temp': 60,
+            'max_outside_temp': 95,
             'ideal_comfort_temp': 72,
-
-            # Comfort Parameters
             'comfort_factor': 5,
-
-            # Energy Parameters
             'energy_factor': 2.5,
             'max_energy': 100,
             'house_energy_bar_max': 45,
@@ -31,7 +27,8 @@ class ACGame:
             'score_energy_weight': 0.3,
             'bonus_comfort_threshold': 95.0,
             'bonus_seconds': 5,
-            'bonus_points': 100
+            'bonus_points': 100,
+            'max_score_per_second': 100  # New: Max value for score bar scaling
         }
 
         self.num_houses = 3
@@ -47,6 +44,7 @@ class ACGame:
         self.outside_temp = 75
         self.time_left = self.config['initial_time']
         self.total_score = 0
+        self.score_per_second = 0  # New: Track per-second score
         self.update_game_id = None
         self.high_comfort_seconds = 0
         self.bonus_awarded = False
@@ -91,25 +89,34 @@ class ACGame:
         self.bonus_label = ttk.Label(self.bonus_frame, text="", font=("Arial", 20))
         self.bonus_label.pack()
 
-        self.energy_frame = ttk.LabelFrame(self.root, text="Energy Meter")
-        self.energy_frame.pack(padx=10, pady=5)
-        self.energy_canvas = tk.Canvas(self.energy_frame, width=202, height=20,
-                                       bg='white', highlightthickness=1,
-                                       highlightbackground='black')
+        # Meters Frame to align Energy, Comfort, and Score bars vertically
+        self.meters_frame = ttk.Frame(self.root)
+        self.meters_frame.pack(padx=10, pady=5)
+
+        self.energy_frame = ttk.LabelFrame(self.meters_frame, text="Energy Meter")
+        self.energy_frame.pack(side=tk.LEFT, padx=5)
+        self.energy_canvas = tk.Canvas(self.energy_frame, width=202, height=20, bg='white', highlightthickness=1, highlightbackground='black')
         self.energy_canvas.pack()
         self.energy_bar = self.energy_canvas.create_rectangle(1, 1, 1, 19, fill='green')
         self.energy_label = ttk.Label(self.energy_frame, text=f"Energy: {self.energy_use:.1f}/{self.config['max_energy']}")
         self.energy_label.pack()
 
-        self.overall_comfort_frame = ttk.LabelFrame(self.root, text="Overall Comfort")
-        self.overall_comfort_frame.pack(padx=10, pady=5)
-        self.comfort_canvas = tk.Canvas(self.overall_comfort_frame, width=202, height=20,
-                                        bg='white', highlightthickness=1,
-                                        highlightbackground='black')
+        self.overall_comfort_frame = ttk.LabelFrame(self.meters_frame, text="Overall Comfort")
+        self.overall_comfort_frame.pack(side=tk.LEFT, padx=5)
+        self.comfort_canvas = tk.Canvas(self.overall_comfort_frame, width=202, height=20, bg='white', highlightthickness=1, highlightbackground='black')
         self.comfort_canvas.pack()
         self.comfort_bar = self.comfort_canvas.create_rectangle(1, 1, 130, 19, fill='yellow')
         self.comfort_percent_label = ttk.Label(self.overall_comfort_frame, text="65/100%")
         self.comfort_percent_label.pack()
+
+        # New Score Per Second Bar (Vertical)
+        self.score_per_second_frame = ttk.LabelFrame(self.meters_frame, text="Score/Sec")
+        self.score_per_second_frame.pack(side=tk.RIGHT, padx=5)
+        self.score_canvas = tk.Canvas(self.score_per_second_frame, width=20, height=202, bg='white', highlightthickness=1, highlightbackground='black')
+        self.score_canvas.pack()
+        self.score_bar = self.score_canvas.create_rectangle(1, 202, 19, 202, fill='blue')  # Starts at bottom
+        self.score_per_second_label = ttk.Label(self.score_per_second_frame, text=f"{self.score_per_second:.1f}")
+        self.score_per_second_label.pack()
 
         self.houses_frame = ttk.Frame(self.root)
         self.houses_frame.pack(padx=10, pady=10)
@@ -130,9 +137,7 @@ class ACGame:
             if i == 0:
                 name_label.config(font=("Arial", 14, "bold"))
 
-            comfort_canvas = tk.Canvas(frame, width=102, height=20,
-                                       bg='white', highlightthickness=1,
-                                       highlightbackground='black')
+            comfort_canvas = tk.Canvas(frame, width=102, height=20, bg='white', highlightthickness=1, highlightbackground='black')
             comfort_canvas.pack(pady=2)
             comfort_bar = comfort_canvas.create_rectangle(1, 1, 66, 19, fill='yellow')
 
@@ -143,9 +148,7 @@ class ACGame:
             ssd_canvas.pack(pady=2)
             ssd_segments = self.create_ssd(ssd_canvas, 77)
 
-            temp_canvas = tk.Canvas(frame, width=102, height=20,
-                                    bg='white', highlightthickness=1,
-                                    highlightbackground='black')
+            temp_canvas = tk.Canvas(frame, width=102, height=20, bg='white', highlightthickness=1, highlightbackground='black')
             temp_canvas.pack(pady=2)
             temp_bar = temp_canvas.create_rectangle(1, 1, 101, 19, fill='#FFA500')
             temp_text = temp_canvas.create_text(51, 10, text="77°F", font=("Arial", 10), fill='black')
@@ -168,9 +171,7 @@ class ACGame:
             bolt_points = [15, 0, 7, 12, 13, 15, 5, 30, 20, 14, 10, 12]
             bolt_canvas.create_polygon(bolt_points, fill='yellow', outline='black')
 
-            house_energy_canvas = tk.Canvas(energy_frame, width=82, height=20,
-                                            bg='white', highlightthickness=1,
-                                            highlightbackground='black')
+            house_energy_canvas = tk.Canvas(energy_frame, width=82, height=20, bg='white', highlightthickness=1, highlightbackground='black')
             house_energy_canvas.pack(side=tk.LEFT)
             house_energy_bar = house_energy_canvas.create_rectangle(1, 1, 1, 19, fill='green')
 
@@ -231,6 +232,7 @@ class ACGame:
         self.game_over = False
         self.time_left = self.config['initial_time']
         self.total_score = 0
+        self.score_per_second = 0  # Reset score per second
         self.high_comfort_seconds = 0
         self.bonus_awarded = False
         self.energy_use = 0
@@ -247,6 +249,8 @@ class ACGame:
             self.update_house_display(i)
         self.energy_canvas.coords(self.energy_bar, 1, 1, 1, 19)
         self.energy_label.config(text=f"Energy: {self.energy_use:.1f}/{self.config['max_energy']}")
+        self.score_canvas.coords(self.score_bar, 1, 202, 19, 202)  # Reset score bar
+        self.score_per_second_label.config(text=f"{self.score_per_second:.1f}")
         self.animate_fans()
         self.update_outside_temp()
         self.update_game_and_timer()
@@ -470,8 +474,8 @@ class ACGame:
         self.energy_use = sum(house_energy_values)
 
         if from_timer:
-            score = (avg_comfort * self.config['score_comfort_weight']) + ((self.config['max_energy'] - self.energy_use) * self.config['score_energy_weight'])
-            self.total_score = int(self.total_score + score)
+            self.score_per_second = (avg_comfort * self.config['score_comfort_weight']) + ((self.config['max_energy'] - self.energy_use) * self.config['score_energy_weight'])
+            self.total_score = int(self.total_score + self.score_per_second)
 
             if avg_comfort >= self.config['bonus_comfort_threshold']:
                 self.high_comfort_seconds += 1
@@ -484,6 +488,14 @@ class ACGame:
                 self.high_comfort_seconds = 0
 
             self.score_label.config(text=f"{self.total_score}")
+            # Update score bar and label
+            score_height = (self.score_per_second / self.config['max_score_per_second']) * 200
+            if score_height > 200:
+                score_height = 200
+            score_color = 'blue' if self.score_per_second >= 0 else 'red'
+            self.score_canvas.coords(self.score_bar, 1, 202, 19, 202 - score_height)
+            self.score_canvas.itemconfig(self.score_bar, fill=score_color)
+            self.score_per_second_label.config(text=f"{self.score_per_second:.1f}")
 
         energy_width = (self.energy_use / self.config['max_energy']) * 200
         if energy_width > 200:
@@ -529,6 +541,7 @@ class ACGame:
         self.outside_temp = 75
         self.time_left = self.config['initial_time']
         self.total_score = 0
+        self.score_per_second = 0  # Reset score per second
         self.high_comfort_seconds = 0
         self.bonus_awarded = False
         self.energy_use = 0
@@ -549,6 +562,8 @@ class ACGame:
         self.comfort_canvas.coords(self.comfort_bar, 1, 1, 130, 19)
         self.comfort_canvas.itemconfig(self.comfort_bar, fill='yellow')
         self.comfort_percent_label.config(text="65/100%")
+        self.score_canvas.coords(self.score_bar, 1, 202, 19, 202)  # Reset score bar
+        self.score_per_second_label.config(text=f"{self.score_per_second:.1f}")
         self.update_house_selection()
 
 def main():
