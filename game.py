@@ -29,7 +29,7 @@ class ACGame:
             'initial_time': 60,
             'score_comfort_weight': 0.6,
             'score_energy_weight': 0.4,
-            'bonus_comfort_threshold': 90.0,
+            'bonus_comfort_threshold': 95.0,
             'bonus_seconds': 5,
             'bonus_points': 100
         }
