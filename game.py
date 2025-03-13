@@ -29,20 +29,20 @@ class ACGame:
             'bonus_seconds': 5,
             'bonus_points': 100,
             'max_score_per_second': 100,
-            'temp_init_spread': 5  # New: ±4°F spread for initial temps
+            'temp_init_spread': 5  # Updated to ±5°F for thermostats
         }
 
         self.num_houses = 3
-        self.thermostats = [self.config['ideal_comfort_temp']] * self.num_houses  # Initial placeholder
-        self.house_temps = [self.config['ideal_comfort_temp']] * self.num_houses  # Initial placeholder
-        self.comfort_levels = [100] * self.num_houses  # Matches ideal temp
+        self.thermostats = [self.config['ideal_comfort_temp']] * self.num_houses
+        self.house_temps = [self.config['ideal_comfort_temp']] * self.num_houses
+        self.comfort_levels = [100] * self.num_houses
         self.ac_on = [True] * self.num_houses
         self.energy_use = 0
         self.game_over = False
         self.game_started = False
         self.selected_house = 0
         self.fan_angles = [0] * self.num_houses
-        self.outside_temp = self.config['ideal_comfort_temp']  # Initial placeholder
+        self.outside_temp = self.config['ideal_comfort_temp']
         self.time_left = self.config['initial_time']
         self.total_score = 0
         self.score_per_second = 0
@@ -62,7 +62,6 @@ class ACGame:
         self.root.bind('<Up>', self.increase_temp)
         self.root.bind('<Down>', self.decrease_temp)
         self.root.bind('s', self.start_game)
-        # Removed 'r' binding for reset_game
 
     def create_widgets(self):
         self.top_frame = ttk.Frame(self.root)
@@ -105,7 +104,7 @@ class ACGame:
         self.overall_comfort_frame.pack(side=tk.LEFT, padx=5)
         self.comfort_canvas = tk.Canvas(self.overall_comfort_frame, width=202, height=20, bg='white', highlightthickness=1, highlightbackground='black')
         self.comfort_canvas.pack()
-        self.comfort_bar = self.comfort_canvas.create_rectangle(1, 1, 200, 19, fill='green')  # Initially 100%
+        self.comfort_bar = self.comfort_canvas.create_rectangle(1, 1, 200, 19, fill='green')
         self.comfort_percent_label = ttk.Label(self.overall_comfort_frame, text="100/100%")
         self.comfort_percent_label.pack()
 
@@ -138,7 +137,7 @@ class ACGame:
 
             comfort_canvas = tk.Canvas(frame, width=102, height=20, bg='white', highlightthickness=1, highlightbackground='black')
             comfort_canvas.pack(pady=2)
-            comfort_bar = comfort_canvas.create_rectangle(1, 1, 100, 19, fill='green')  # Initially 100%
+            comfort_bar = comfort_canvas.create_rectangle(1, 1, 100, 19, fill='green')
 
             comfort_label = ttk.Label(frame, text="Comfort: 100%")
             comfort_label.pack(pady=2)
@@ -199,7 +198,6 @@ class ACGame:
 
         self.update_house_selection()
         ttk.Button(self.root, text="Start Game (S)", command=self.start_game).pack(pady=5)
-        # Removed Reset button
 
     def update_outside_temp(self):
         if self.game_started and not self.game_over:
@@ -239,18 +237,18 @@ class ACGame:
         self.score_label.config(text=f"{self.total_score}")
         self.bonus_label.config(text="")
 
-        # Randomly initialize outside temp and thermostats within ±4°F of ideal
-        ideal = self.config['ideal_comfort_temp']
-        spread = self.config['temp_init_spread']
-        self.outside_temp = random.randint(ideal - spread, ideal + spread)
-        self.outside_temp = max(self.config['min_outside_temp'], min(self.config['max_outside_temp'], self.outside_temp))
+        # Randomly initialize outside temp between 73°F and 77°F
+        self.outside_temp = random.randint(73, 77)
         self.outside_temp_canvas.itemconfig(self.outside_temp_text, text=f"{self.outside_temp}°F")
         self.outside_temp_canvas.itemconfig(self.outside_temp_rect, fill=self.get_temp_color(self.outside_temp))
 
+        # Randomly initialize thermostats within ±5°F of ideal
+        ideal = self.config['ideal_comfort_temp']
+        spread = self.config['temp_init_spread']
         for i in range(self.num_houses):
             self.thermostats[i] = random.randint(ideal - spread, ideal + spread)
             self.thermostats[i] = max(self.config['min_thermostat_temp'], min(self.config['max_thermostat_temp'], self.thermostats[i]))
-            self.house_temps[i] = self.thermostats[i]  # Start house temp at thermostat
+            self.house_temps[i] = self.thermostats[i]
             self.ac_on[i] = self.outside_temp > self.thermostats[i]
             self.update_house_display(i)
 
