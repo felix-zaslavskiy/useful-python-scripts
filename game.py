@@ -28,23 +28,24 @@ class ACGame:
             'bonus_comfort_threshold': 95.0,
             'bonus_seconds': 5,
             'bonus_points': 100,
-            'max_score_per_second': 100  # New: Max value for score bar scaling
+            'max_score_per_second': 100,
+            'temp_init_spread': 4  # New: ±4°F spread for initial temps
         }
 
         self.num_houses = 3
-        self.thermostats = [77] * self.num_houses
-        self.house_temps = [77] * self.num_houses
-        self.comfort_levels = [65] * self.num_houses
+        self.thermostats = [self.config['ideal_comfort_temp']] * self.num_houses  # Initial placeholder
+        self.house_temps = [self.config['ideal_comfort_temp']] * self.num_houses  # Initial placeholder
+        self.comfort_levels = [100] * self.num_houses  # Matches ideal temp
         self.ac_on = [True] * self.num_houses
         self.energy_use = 0
         self.game_over = False
         self.game_started = False
         self.selected_house = 0
         self.fan_angles = [0] * self.num_houses
-        self.outside_temp = 75
+        self.outside_temp = self.config['ideal_comfort_temp']  # Initial placeholder
         self.time_left = self.config['initial_time']
         self.total_score = 0
-        self.score_per_second = 0  # New: Track per-second score
+        self.score_per_second = 0
         self.update_game_id = None
         self.high_comfort_seconds = 0
         self.bonus_awarded = False
@@ -61,7 +62,7 @@ class ACGame:
         self.root.bind('<Up>', self.increase_temp)
         self.root.bind('<Down>', self.decrease_temp)
         self.root.bind('s', self.start_game)
-        self.root.bind('r', self.reset_game)
+        # Removed 'r' binding for reset_game
 
     def create_widgets(self):
         self.top_frame = ttk.Frame(self.root)
@@ -89,7 +90,6 @@ class ACGame:
         self.bonus_label = ttk.Label(self.bonus_frame, text="", font=("Arial", 20))
         self.bonus_label.pack()
 
-        # Meters Frame to align Energy, Comfort, and Score bars vertically
         self.meters_frame = ttk.Frame(self.root)
         self.meters_frame.pack(padx=10, pady=5)
 
@@ -105,16 +105,15 @@ class ACGame:
         self.overall_comfort_frame.pack(side=tk.LEFT, padx=5)
         self.comfort_canvas = tk.Canvas(self.overall_comfort_frame, width=202, height=20, bg='white', highlightthickness=1, highlightbackground='black')
         self.comfort_canvas.pack()
-        self.comfort_bar = self.comfort_canvas.create_rectangle(1, 1, 130, 19, fill='yellow')
-        self.comfort_percent_label = ttk.Label(self.overall_comfort_frame, text="65/100%")
+        self.comfort_bar = self.comfort_canvas.create_rectangle(1, 1, 200, 19, fill='green')  # Initially 100%
+        self.comfort_percent_label = ttk.Label(self.overall_comfort_frame, text="100/100%")
         self.comfort_percent_label.pack()
 
-        # New Score Per Second Bar (Vertical)
         self.score_per_second_frame = ttk.LabelFrame(self.meters_frame, text="Score/Sec")
         self.score_per_second_frame.pack(side=tk.RIGHT, padx=5)
         self.score_canvas = tk.Canvas(self.score_per_second_frame, width=20, height=202, bg='white', highlightthickness=1, highlightbackground='black')
         self.score_canvas.pack()
-        self.score_bar = self.score_canvas.create_rectangle(1, 202, 19, 202, fill='blue')  # Starts at bottom
+        self.score_bar = self.score_canvas.create_rectangle(1, 202, 19, 202, fill='blue')
         self.score_per_second_label = ttk.Label(self.score_per_second_frame, text=f"{self.score_per_second:.1f}")
         self.score_per_second_label.pack()
 
@@ -139,19 +138,19 @@ class ACGame:
 
             comfort_canvas = tk.Canvas(frame, width=102, height=20, bg='white', highlightthickness=1, highlightbackground='black')
             comfort_canvas.pack(pady=2)
-            comfort_bar = comfort_canvas.create_rectangle(1, 1, 66, 19, fill='yellow')
+            comfort_bar = comfort_canvas.create_rectangle(1, 1, 100, 19, fill='green')  # Initially 100%
 
-            comfort_label = ttk.Label(frame, text="Comfort: 65%")
+            comfort_label = ttk.Label(frame, text="Comfort: 100%")
             comfort_label.pack(pady=2)
 
             ssd_canvas = tk.Canvas(frame, width=60, height=35, bg='black')
             ssd_canvas.pack(pady=2)
-            ssd_segments = self.create_ssd(ssd_canvas, 77)
+            ssd_segments = self.create_ssd(ssd_canvas, self.config['ideal_comfort_temp'])
 
             temp_canvas = tk.Canvas(frame, width=102, height=20, bg='white', highlightthickness=1, highlightbackground='black')
             temp_canvas.pack(pady=2)
-            temp_bar = temp_canvas.create_rectangle(1, 1, 101, 19, fill='#FFA500')
-            temp_text = temp_canvas.create_text(51, 10, text="77°F", font=("Arial", 10), fill='black')
+            temp_bar = temp_canvas.create_rectangle(1, 1, 101, 19, fill=self.get_temp_color(self.config['ideal_comfort_temp']))
+            temp_text = temp_canvas.create_text(51, 10, text=f"{self.config['ideal_comfort_temp']}°F", font=("Arial", 10), fill='black')
 
             fan_canvas = tk.Canvas(frame, width=50, height=50, bg='white')
             fan_canvas.pack(pady=2)
@@ -200,7 +199,7 @@ class ACGame:
 
         self.update_house_selection()
         ttk.Button(self.root, text="Start Game (S)", command=self.start_game).pack(pady=5)
-        ttk.Button(self.root, text="Reset (R)", command=self.reset_game).pack(pady=5)
+        # Removed Reset button
 
     def update_outside_temp(self):
         if self.game_started and not self.game_over:
@@ -232,24 +231,32 @@ class ACGame:
         self.game_over = False
         self.time_left = self.config['initial_time']
         self.total_score = 0
-        self.score_per_second = 0  # Reset score per second
+        self.score_per_second = 0
         self.high_comfort_seconds = 0
         self.bonus_awarded = False
         self.energy_use = 0
         self.timer_label.config(text=f"{self.time_left} s")
         self.score_label.config(text=f"{self.total_score}")
         self.bonus_label.config(text="")
-        self.outside_temp = 75
+
+        # Randomly initialize outside temp and thermostats within ±4°F of ideal
+        ideal = self.config['ideal_comfort_temp']
+        spread = self.config['temp_init_spread']
+        self.outside_temp = random.randint(ideal - spread, ideal + spread)
+        self.outside_temp = max(self.config['min_outside_temp'], min(self.config['max_outside_temp'], self.outside_temp))
         self.outside_temp_canvas.itemconfig(self.outside_temp_text, text=f"{self.outside_temp}°F")
         self.outside_temp_canvas.itemconfig(self.outside_temp_rect, fill=self.get_temp_color(self.outside_temp))
+
         for i in range(self.num_houses):
-            self.thermostats[i] = 77
-            self.house_temps[i] = 77
-            self.ac_on[i] = True
+            self.thermostats[i] = random.randint(ideal - spread, ideal + spread)
+            self.thermostats[i] = max(self.config['min_thermostat_temp'], min(self.config['max_thermostat_temp'], self.thermostats[i]))
+            self.house_temps[i] = self.thermostats[i]  # Start house temp at thermostat
+            self.ac_on[i] = self.outside_temp > self.thermostats[i]
             self.update_house_display(i)
+
         self.energy_canvas.coords(self.energy_bar, 1, 1, 1, 19)
         self.energy_label.config(text=f"Energy: {self.energy_use:.1f}/{self.config['max_energy']}")
-        self.score_canvas.coords(self.score_bar, 1, 202, 19, 202)  # Reset score bar
+        self.score_canvas.coords(self.score_bar, 1, 202, 19, 202)
         self.score_per_second_label.config(text=f"{self.score_per_second:.1f}")
         self.animate_fans()
         self.update_outside_temp()
@@ -488,7 +495,6 @@ class ACGame:
                 self.high_comfort_seconds = 0
 
             self.score_label.config(text=f"{self.total_score}")
-            # Update score bar and label
             score_height = (self.score_per_second / self.config['max_score_per_second']) * 200
             if score_height > 200:
                 score_height = 200
@@ -528,43 +534,6 @@ class ACGame:
         ok_button.pack(pady=10)
         popup.bind('<Return>', lambda event: popup.destroy())
         popup.focus_set()
-
-    def reset_game(self, event=None):
-        if self.update_game_id is not None:
-            self.root.after_cancel(self.update_game_id)
-            self.update_game_id = None
-        self.game_over = False
-        self.game_started = False
-        self.selected_house = 0
-        self.fan_angles = [0] * self.num_houses
-        self.ac_on = [True] * self.num_houses
-        self.outside_temp = 75
-        self.time_left = self.config['initial_time']
-        self.total_score = 0
-        self.score_per_second = 0  # Reset score per second
-        self.high_comfort_seconds = 0
-        self.bonus_awarded = False
-        self.energy_use = 0
-        self.outside_temp_canvas.itemconfig(self.outside_temp_text, text=f"{self.outside_temp}°F")
-        self.outside_temp_canvas.itemconfig(self.outside_temp_rect, fill=self.get_temp_color(self.outside_temp))
-        self.timer_label.config(text=f"{self.time_left} s")
-        self.score_label.config(text=f"{self.total_score}")
-        self.bonus_label.config(text="")
-        for i in range(self.num_houses):
-            self.thermostats[i] = 77
-            self.house_temps[i] = 77
-            self.comfort_levels[i] = 65
-            self.channels[i].stop()
-            self.update_house_display(i)
-        self.energy_canvas.coords(self.energy_bar, 1, 1, 1, 19)
-        self.energy_canvas.itemconfig(self.energy_bar, fill='green')
-        self.energy_label.config(text=f"Energy: {self.energy_use:.1f}/{self.config['max_energy']}")
-        self.comfort_canvas.coords(self.comfort_bar, 1, 1, 130, 19)
-        self.comfort_canvas.itemconfig(self.comfort_bar, fill='yellow')
-        self.comfort_percent_label.config(text="65/100%")
-        self.score_canvas.coords(self.score_bar, 1, 202, 19, 202)  # Reset score bar
-        self.score_per_second_label.config(text=f"{self.score_per_second:.1f}")
-        self.update_house_selection()
 
 def main():
     root = tk.Tk()
