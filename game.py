@@ -17,7 +17,7 @@ class ACGame:
             'max_thermostat_temp': 90,
             'min_outside_temp': 60,
             'max_outside_temp': 95,
-            'ideal_comfort_temp': 72,
+            'house_comfort_temps': [70, 72, 74],  # New: Zach=70°F, Dad=72°F, Mom=74°F
             'comfort_factor': 5,
             'energy_factor': 2.5,
             'max_energy': 100,
@@ -29,12 +29,13 @@ class ACGame:
             'bonus_seconds': 5,
             'bonus_points': 100,
             'max_score_per_second': 100,
-            'temp_init_spread': 5  # Updated to ±5°F for thermostats
+            'temp_init_spread': 5,
+            'weather_event_chance': 0.05  # New: 5% chance of weather event
         }
 
         self.num_houses = 3
-        self.thermostats = [self.config['ideal_comfort_temp']] * self.num_houses
-        self.house_temps = [self.config['ideal_comfort_temp']] * self.num_houses
+        self.thermostats = [self.config['house_comfort_temps'][i] for i in range(self.num_houses)]  # Initial placeholder
+        self.house_temps = [self.config['house_comfort_temps'][i] for i in range(self.num_houses)]  # Initial placeholder
         self.comfort_levels = [100] * self.num_houses
         self.ac_on = [True] * self.num_houses
         self.energy_use = 0
@@ -42,7 +43,7 @@ class ACGame:
         self.game_started = False
         self.selected_house = 0
         self.fan_angles = [0] * self.num_houses
-        self.outside_temp = self.config['ideal_comfort_temp']
+        self.outside_temp = 75  # Initial placeholder between 73-77
         self.time_left = self.config['initial_time']
         self.total_score = 0
         self.score_per_second = 0
@@ -144,12 +145,12 @@ class ACGame:
 
             ssd_canvas = tk.Canvas(frame, width=60, height=35, bg='black')
             ssd_canvas.pack(pady=2)
-            ssd_segments = self.create_ssd(ssd_canvas, self.config['ideal_comfort_temp'])
+            ssd_segments = self.create_ssd(ssd_canvas, self.config['house_comfort_temps'][i])
 
             temp_canvas = tk.Canvas(frame, width=102, height=20, bg='white', highlightthickness=1, highlightbackground='black')
             temp_canvas.pack(pady=2)
-            temp_bar = temp_canvas.create_rectangle(1, 1, 101, 19, fill=self.get_temp_color(self.config['ideal_comfort_temp']))
-            temp_text = temp_canvas.create_text(51, 10, text=f"{self.config['ideal_comfort_temp']}°F", font=("Arial", 10), fill='black')
+            temp_bar = temp_canvas.create_rectangle(1, 1, 101, 19, fill=self.get_temp_color(self.config['house_comfort_temps'][i]))
+            temp_text = temp_canvas.create_text(51, 10, text=f"{self.config['house_comfort_temps'][i]}°F", font=("Arial", 10), fill='black')
 
             fan_canvas = tk.Canvas(frame, width=50, height=50, bg='white')
             fan_canvas.pack(pady=2)
@@ -201,8 +202,12 @@ class ACGame:
 
     def update_outside_temp(self):
         if self.game_started and not self.game_over:
+            # Normal small fluctuation
             change = random.choice([-1, 0, 1])
             new_temp = self.outside_temp + change
+            # Dynamic Weather Event: 5% chance for ±5°F swing
+            if random.random() < self.config['weather_event_chance']:
+                new_temp += random.choice([-5, 5])
             self.outside_temp = max(self.config['min_outside_temp'], min(self.config['max_outside_temp'], new_temp))
             self.outside_temp_canvas.itemconfig(self.outside_temp_text, text=f"{self.outside_temp}°F")
             self.outside_temp_canvas.itemconfig(self.outside_temp_rect, fill=self.get_temp_color(self.outside_temp))
@@ -242,10 +247,10 @@ class ACGame:
         self.outside_temp_canvas.itemconfig(self.outside_temp_text, text=f"{self.outside_temp}°F")
         self.outside_temp_canvas.itemconfig(self.outside_temp_rect, fill=self.get_temp_color(self.outside_temp))
 
-        # Randomly initialize thermostats within ±5°F of ideal
-        ideal = self.config['ideal_comfort_temp']
+        # Randomly initialize thermostats within ±5°F of house-specific ideal
         spread = self.config['temp_init_spread']
         for i in range(self.num_houses):
+            ideal = self.config['house_comfort_temps'][i]
             self.thermostats[i] = random.randint(ideal - spread, ideal + spread)
             self.thermostats[i] = max(self.config['min_thermostat_temp'], min(self.config['max_thermostat_temp'], self.thermostats[i]))
             self.house_temps[i] = self.thermostats[i]
@@ -417,7 +422,8 @@ class ACGame:
         house = self.house_controls[house_index]
         thermostat = self.thermostats[house_index]
         house_temp = self.house_temps[house_index]
-        comfort = max(0, 100 - abs(house_temp - self.config['ideal_comfort_temp']) * self.config['comfort_factor'])
+        ideal_temp = self.config['house_comfort_temps'][house_index]  # Use house-specific ideal temp
+        comfort = max(0, 100 - abs(house_temp - ideal_temp) * self.config['comfort_factor'])
         self.comfort_levels[house_index] = comfort
 
         comfort_width = (comfort / 100) * 100
@@ -466,7 +472,8 @@ class ACGame:
                     self.house_temps[i] = max(self.outside_temp, self.house_temps[i] - 1)
 
             house_temp = self.house_temps[i]
-            comfort = max(0, 100 - abs(house_temp - self.config['ideal_comfort_temp']) * self.config['comfort_factor'])
+            ideal_temp = self.config['house_comfort_temps'][i]  # Use house-specific ideal temp
+            comfort = max(0, 100 - abs(house_temp - ideal_temp) * self.config['comfort_factor'])
             self.comfort_levels[i] = comfort
             total_comfort += comfort
 
