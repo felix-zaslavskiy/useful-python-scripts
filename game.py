@@ -37,6 +37,7 @@ class ACGame:
         self.thermostats = [self.config['house_comfort_temps'][i] for i in range(self.num_houses)]
         self.house_temps = [self.config['house_comfort_temps'][i] for i in range(self.num_houses)]
         self.comfort_levels = [100] * self.num_houses
+        self.prev_comfort_levels = [100] * self.num_houses  # New: Track previous comfort for transitions
         self.ac_on = [True] * self.num_houses
         self.energy_use = 0
         self.game_over = False
@@ -53,7 +54,12 @@ class ACGame:
 
         self.fan_sound = pygame.mixer.Sound("fan_hum.mp3")
         self.fan_sound.set_volume(0.5)
-        self.channels = [pygame.mixer.Channel(i) for i in range(self.num_houses)]
+        self.happy_sound = pygame.mixer.Sound("happy.mp3")  # New: Happy sound
+        self.happy_sound.set_volume(0.7)
+        self.unhappy_sound = pygame.mixer.Sound("unhappy.mp3")  # New: Unhappy sound
+        self.unhappy_sound.set_volume(0.7)
+        self.channels = [pygame.mixer.Channel(i) for i in range(self.num_houses)]  # Fan sounds
+        self.comfort_channel = pygame.mixer.Channel(self.num_houses)  # New: Separate channel for comfort sounds
 
         self.house_controls = []
         self.create_widgets()
@@ -424,7 +430,17 @@ class ACGame:
         house_temp = self.house_temps[house_index]
         ideal_temp = self.config['house_comfort_temps'][house_index]
         comfort = max(0, 100 - abs(house_temp - ideal_temp) * self.config['comfort_factor'])
+        prev_comfort = self.prev_comfort_levels[house_index]
         self.comfort_levels[house_index] = comfort
+
+        # Sound effects for selected house
+        if house_index == self.selected_house and not self.comfort_channel.get_busy():
+            if prev_comfort <= 90 and comfort > 90:  # Crossing 90% upward
+                self.comfort_channel.play(self.happy_sound)
+            elif prev_comfort >= 70 and comfort < 70:  # Crossing 70% downward
+                self.comfort_channel.play(self.unhappy_sound)
+
+        self.prev_comfort_levels[house_index] = comfort  # Update previous comfort
 
         comfort_width = (comfort / 100) * 100
         comfort_color = 'red' if comfort < 50 else 'yellow' if comfort < 80 else 'green'
